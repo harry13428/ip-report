@@ -174,10 +174,13 @@ a{color:var(--accent)}
 .cal .foot{display:flex;gap:8px;margin-top:10px}
 
 /* ===== 全部人：一支片一張小卡，狀態大標籤，展開後表格式 ===== */
-.person h3{font-size:19px;margin-bottom:6px}
+.person h3{font-size:19px;margin-bottom:0;cursor:pointer;user-select:none;padding:2px 0}
+.person h3 .caret{color:var(--muted);font-size:14px;margin-left:6px}
+.person .pbody{display:none;margin-top:6px}
+.person.open .pbody{display:block}
 .iprow{border-top:0;margin-top:10px}
-.iprow .ipname{font-size:16px;font-weight:800;padding:8px 10px;background:var(--soft);border-radius:8px;color:var(--accent);display:flex;align-items:center;gap:8px}
-.iprow .ipname .cnt{font-weight:600;color:var(--accent);opacity:.7;font-size:12px}
+.iprow .ipname{font-size:17px;font-weight:800;padding:9px 12px;background:var(--accent);border-radius:8px;color:#fff;display:flex;align-items:center;gap:8px;letter-spacing:.3px}
+.iprow .ipname .cnt{font-weight:600;color:#fff;opacity:.8;font-size:12px;background:rgba(255,255,255,.18);padding:1px 8px;border-radius:999px}
 .vid{margin:8px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden}
 .vid .t{display:flex;align-items:center;gap:10px;padding:12px 12px;cursor:pointer;user-select:none;font-weight:700}
 .vid .t .film{font-size:16px;font-weight:800;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -305,7 +308,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.2';
+const APP_VER = 'v4.3';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -358,7 +361,7 @@ let myIps = loadJSON(LS.draft, {}).ips || [];
 let drafts = loadJSON(LS.draft, {}).drafts || {};
 let everyone = loadJSON(LS.cache, {});
 let filter = 'all';
-let openIp = null; let openAll = {};
+let openIp = null; let openAll = {}; let openPerson = {};
 let calMonth = null;
 
 function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', updatedAt:'' }; }
@@ -441,7 +444,7 @@ function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先�
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
   $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選內審或外審 → 回答問題 → 儲存並上傳。上傳後表單會清空，可以接著寫下一支。',
-                            all:'<b>這頁：</b>藍＝內審、橘＝外審、綠＝已過片。點影片那一格可以展開看細節；自己的片有「編輯」。' }[p]; window.scrollTo(0,0); }
+                            all:'<b>這頁：</b>點人名展開他填的東西。藍＝內審、橘＝外審、綠＝已過片；點影片那一格看細節。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
 
@@ -559,9 +562,11 @@ function renderAll(){
         if(e.publishDate) chips.push(`<span class="det">預計上片 ${esc(fmtD(e.publishDate))}</span>`);
         return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="stage ${st.scls}">${st.stage}</span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div>${chips.length?`<div class="sub">${chips.join('')}</div>`:''}<div class="d">${entryDetail(e)}${name===cfg.name?`<div style="margin-top:10px"><button class="btn small" data-edit-ip="${esc(ip)}" data-edit-film="${esc(e.film)}">✏️ 編輯這支</button></div>`:''}</div></div>`; }).join('') + `</div>`; }).join('')
       : `<div class="empty" style="padding:8px">這天沒填</div>`;
-    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':''}</span></h3>${rows}</div>`;
+    const po = openPerson[name] !== undefined ? openPerson[name] : (name===cfg.name);
+    return `<div class="card person ${po?'open':''}" data-p="${esc(name)}"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':(ips.length?'':'這天沒填')}</span><span class="caret">${po?'▴':'▾'}</span></h3><div class="pbody">${rows}</div></div>`;
   }).join('');
   list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
+  list.querySelectorAll('.person h3').forEach(h => h.onclick = () => { const n=h.parentElement.dataset.p; const cur = openPerson[n] !== undefined ? openPerson[n] : (n===cfg.name); openPerson[n] = !cur; renderAll(); });
   list.querySelectorAll('.vid .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
   list.querySelectorAll('[data-edit-ip]').forEach(b => b.onclick = () => editEntry(day, b.dataset.editIp, b.dataset.editFilm));
 }
