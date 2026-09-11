@@ -23,8 +23,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-s
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 textarea{width:100%;min-height:64px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);line-height:1.5}
-input[type=text],input[type=date],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);-webkit-appearance:none;appearance:none;min-height:44px}
-select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:36px}
+input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
 .app{max-width:760px;margin:0 auto;padding:0 12px 96px}
 header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
@@ -250,7 +249,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v3.1';
+const APP_VER = 'v3.0';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -261,8 +260,8 @@ const STATUS = {
   stuck:{ label:'🔴 卡住',  cls:'stuck'},
   done: { label:'✅ 已過片', cls:'done' },
 };
-const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等小優看', '等 IP 補資料', '其他'];          // 為什麼還在內審
-const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
+const PASS_OPTS = ['無', '要催 IP 過片', '交給小野', '已跟小野講'];
+const ASSET_OPTS = ['無', '第1步 已跟 IP 要', '第2步 已跟小野說', '第3步 群組提醒過', '第4步 再跟小野說', '第5步 找主管／操盤'];
 const WD = ['日','一','二','三','四','五','六'];
 
 /* ================= 小工具 ================= */
@@ -291,7 +290,7 @@ let filter = 'all';
 let openIp = null; let openAll = {};
 let calMonth = null;
 
-function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', status:'', chase:'', pass:'無', assets:'無', assetsNote:'', opening:[], updatedAt:'' }; }
+function blankEntry(){ return { film:'', status:'', pending:'', chase:'', news:'', pass:'無', assets:'無', assetsNote:'', help:'', opening:[], updatedAt:'' }; }
 function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
 function entry(ip){ ensureMine(); mine.weeks[day] ||= {}; mine.weeks[day][ip] ||= blankEntry(); return mine.weeks[day][ip]; }
 function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; return c; }
@@ -357,7 +356,7 @@ function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先�
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>上面選日期 → 點 IP 展開 → 填片名 → 選內審或外審 → 回答出現的問題 → 最後選狀態 → 按「儲存並上傳」。',
+  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>上面選日期 → 點 IP 展開 → 填片名、卡在哪 → 最後選狀態 → 按「儲存並上傳」。',
                             all:'<b>這頁：</b>大家這天的回報。點人底下的 IP 可以展開看那支片的狀況，紅字＝需要主管協助。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
@@ -378,29 +377,20 @@ function renderMine(){
     const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remote || blankEntry()));
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}${e.stage?`<span class="badge" style="margin-left:6px">${esc(e.stage)}</span>`:''}</span>
+      <div class="head"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}</span>
         ${dirtyIp?'<span class="badge dirty">未上傳</span>':(remote?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
-        <div class="field"><label>影片狀態</label>
-          <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button></div></div>
-        ${e.stage==='內審'?`
-        <div class="field"><label>為什麼還在內審？</label>
-          <select data-f="reason">${['',...REASON_OPTS].map(o=>`<option value="${esc(o)}" ${e.reason===o?'selected':''}>${o||'請選擇'}</option>`).join('')}</select>
-          ${e.reason==='其他'?`<input type="text" data-f="reasonNote" style="margin-top:8px" placeholder="自己打：什麼狀況" value="${esc(e.reasonNote||'')}">`:`<input type="text" data-f="reasonNote" style="margin-top:8px" placeholder="補充（選填）" value="${esc(e.reasonNote||'')}">`}</div>
-        `:''}
-        ${e.stage==='外審'?`
-        <div class="field"><label>給 IP 之後的狀態</label>
-          <select data-f="ipReply">${['',...REPLY_OPTS].map(o=>`<option value="${esc(o)}" ${e.ipReply===o?'selected':''}>${o||'請選擇'}</option>`).join('')}</select>
-          ${e.ipReply==='其他'?`<input type="text" data-f="replyNote" style="margin-top:8px" placeholder="自己打：什麼狀況" value="${esc(e.replyNote||'')}">`:''}</div>
-        <div class="field"><label>這支片卡在哪<small>沒有可留白</small></label><textarea data-f="pending" placeholder="例：IP 說要改音樂，還沒說要換哪首">${esc(e.pending)}</textarea></div>
-        <div class="field"><label>有催 IP 過片了嗎？</label>
-          <div class="seg"><button class="${e.chased==='有'?'on':''}" data-f="chased" data-v="有">有</button><button class="${e.chased==='還沒'?'on':''}" data-f="chased" data-v="還沒">還沒</button></div></div>
-        <div class="field"><label>什麼時候外審的</label><input type="date" data-f="reviewDate" value="${esc(e.reviewDate||'')}"></div>
-        <div class="field"><label>預計上片日</label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
-        `:''}
-        <div class="field"><label>最近 IP 新動態<small>不喜歡什麼、想換什麼、喜歡的風格</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea></div>
-        <div class="field"><label>需要主管協助<small>會用紅色顯示給主管，沒有可留白</small></label><textarea data-f="help" placeholder="自己處理不了、需要主管出面的事">${esc(e.help)}</textarea></div>
+        <div class="field"><label>這天的影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
+        <div class="field"><label>1. 卡在哪<small>沒過的原因、卡在哪一步</small></label><textarea data-f="pending" placeholder="例：給 IP 看了 3 天沒回">${esc(e.pending)}</textarea></div>
+        <div class="field"><label>2. 追過沒／對方回覆</label><textarea data-f="chase" placeholder="例：週三群組提醒一次，已跟小野講">${esc(e.chase)}</textarea></div>
+        <div class="field"><label>3. IP 新動態<small>不喜歡什麼、想換什麼、喜歡的風格</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea></div>
+        <div class="field"><label>4. 過片處理</label><div class="seg">${PASS_OPTS.map(o=>`<button class="${e.pass===o?'on':''}" data-f="pass" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>
+        <div class="field"><label>5. 缺素材<small>追到第幾步</small></label><div class="seg">${ASSET_OPTS.map(o=>`<button class="${e.assets===o?'on':''}" data-f="assets" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+          <textarea data-f="assetsNote" style="margin-top:8px;min-height:44px" placeholder="缺什麼素材（沒缺可留白）">${esc(e.assetsNote)}</textarea></div>
+        <div class="field"><label>6. 需要主管協助<small>會用紅色顯示給主管</small></label><textarea data-f="help" placeholder="自己處理不了、需要主管出面的事（沒有可留白）">${esc(e.help)}</textarea></div>
+        <div class="field"><label>7. 本週開頭調整<small>片名／改了什麼／為什麼</small></label>
+          <div>${(e.opening||[]).map((o,i)=>openingRow(o,i)).join('')}</div>
+          <button class="btn small" data-addop="1" style="margin-top:8px">＋ 加一支</button></div>
         <div class="field"><label>這支 IP 這天的狀態<small>最後選</small></label>
           <div class="seg status-seg">${Object.entries(STATUS).map(([k,v])=>`<button class="${e.status===k?'on '+v.cls:''}" data-f="status" data-v="${k}">${v.label}</button>`).join('')}</div></div>
         <div class="divider"></div>
@@ -412,11 +402,10 @@ function renderMine(){
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
-      if(el.tagName==='SELECT'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); renderMine(); }; }
-      else if(el.tagName==='INPUT' && el.type==='date'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
-      else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
+      if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
       else el.onclick = () => { entry(ip)[el.dataset.f] = el.dataset.v; persistDraft(); renderMine(); };
     });
+    card.querySelector('[data-addop]').onclick = () => { entry(ip).opening.push({film:'',change:'',why:''}); persistDraft(); renderMine(); };
     card.querySelectorAll('[data-op]').forEach(el => { const i=+el.dataset.op; if(el.dataset.rmop!==undefined){ el.onclick=()=>{ entry(ip).opening.splice(i,1); persistDraft(); renderMine(); }; } else { el.oninput=()=>{ entry(ip).opening[i][el.dataset.k]=el.value; persistDraft(); markDirty(card); }; } });
     card.querySelector('[data-save]').onclick = () => uploadIp(ip);
     card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這天的內容還原成上次上傳的版本？')) return; mine.weeks[day][ip] = remote ? JSON.parse(JSON.stringify(remote)) : blankEntry(); persistDraft(); renderMine(); };
@@ -427,36 +416,29 @@ function openingRow(o,i){ return `<div class="openrow"><input type="text" data-o
 function markDirty(card){ const b=card.querySelector('.head .badge'); if(b){ b.className='badge dirty'; b.textContent='未上傳'; } else { const s=document.createElement('span'); s.className='badge dirty'; s.textContent='未上傳'; card.querySelector('.head .name').after(s); } const rv=card.querySelector('[data-revert]'); if(rv) rv.disabled=false; }
 
 /* ================= 畫面：全部人 ================= */
-function fmtD(d){ if(!d) return ''; const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
 function entryText(ip, e){
-  const L=[]; L.push(`${STATUS[e.status]?.label || '⚪'}　${ip}${e.film?('｜'+e.film):''}${e.stage?('｜'+e.stage):''}`);
-  if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?'':e.reason}${e.reasonNote?((e.reason&&e.reason!=='其他')?'（'+e.reasonNote+'）':e.reasonNote):''}`);
-  if(e.stage==='外審'){
-    if(e.ipReply) L.push(`　給 IP 之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
-    if(e.pending) L.push(`　卡在哪：${e.pending}`);
-    if(e.chased) L.push(`　催過片：${e.chased}`);
-    if(e.reviewDate||e.publishDate) L.push(`　外審日 ${fmtD(e.reviewDate)||'－'}｜預計上片 ${fmtD(e.publishDate)||'－'}`);
-  }
+  const L=[]; L.push(`${STATUS[e.status]?.label || '⚪ 未填狀態'}　${ip}${e.film?('｜'+e.film):''}`);
+  if(e.pending) L.push(`　卡在哪：${e.pending}`);
+  if(e.chase) L.push(`　追過沒／回覆：${e.chase}`);
   if(e.news) L.push(`　IP 新動態：${e.news}`);
+  if(e.pass && e.pass!=='無') L.push(`　過片處理：${e.pass}`);
+  if(e.assets && e.assets!=='無') L.push(`　缺素材：${e.assets}${e.assetsNote?('（'+e.assetsNote+'）'):''}`); else if(e.assetsNote) L.push(`　缺素材：${e.assetsNote}`);
   if(e.help) L.push(`　⚠️ 需要主管協助：${e.help}`);
+  (e.opening||[]).filter(o=>o.film||o.change||o.why).forEach(o=>L.push(`　開頭調整：${o.film}｜${o.change}｜${o.why}`));
   return L.join('\n');
 }
 function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk);
   if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.map(ip=>entryText(ip, wk[ip])).join('\n'); }
-function entryDetail(e){ const rows=[];
-  if(e.stage==='內審') rows.push(`<div class="kv"><b>還在內審因為</b>${esc(e.reason==='其他'?(e.reasonNote||'其他'):(e.reason||'未選'))}${(e.reason&&e.reason!=='其他'&&e.reasonNote)?'（'+esc(e.reasonNote)+'）':''}</div>`);
-  if(e.stage==='外審'){
-    rows.push(`<div class="kv"><b>給 IP 之後</b>${esc(e.ipReply==='其他'?(e.replyNote||'其他'):(e.ipReply||'未選'))}</div>`);
-    if(e.pending) rows.push(`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`);
-    rows.push(`<div class="kv"><b>催過片</b>${esc(e.chased||'未填')}</div>`);
-    if(e.reviewDate||e.publishDate) rows.push(`<div class="kv"><b>外審日</b>${esc(fmtD(e.reviewDate)||'－')}　<b>預計上片</b>${esc(fmtD(e.publishDate)||'－')}</div>`);
-  }
-  if(!e.stage && e.pending) rows.push(`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`);
-  if(e.news) rows.push(`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`);
-  if(e.help) rows.push(`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`);
-  if(!rows.length) rows.push('<div class="kv" style="color:var(--muted)">只填了狀態</div>');
-  if(e.updatedAt) rows.push(`<div class="kv" style="color:var(--muted);font-size:12px">上傳 ${fmtTime(e.updatedAt)}</div>`);
-  return rows.join(''); }
+function entryDetail(e){ const has = e.pending||e.chase||e.news||(e.pass&&e.pass!=='無')||(e.assets&&e.assets!=='無')||e.assetsNote||e.help||(e.opening||[]).filter(o=>o.film||o.change||o.why).length; return `
+  ${e.pending?`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`:''}
+  ${e.chase?`<div class="kv"><b>追過沒</b>${esc(e.chase)}</div>`:''}
+  ${e.news?`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`:''}
+  ${(e.pass&&e.pass!=='無')?`<div class="kv"><b>過片處理</b>${esc(e.pass)}</div>`:''}
+  ${(e.assets&&e.assets!=='無')||e.assetsNote?`<div class="kv"><b>缺素材</b>${esc(e.assets!=='無'?e.assets:'')} ${esc(e.assetsNote)}</div>`:''}
+  ${e.help?`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`:''}
+  ${(e.opening||[]).filter(o=>o.film||o.change||o.why).map(o=>`<div class="kv"><b>開頭調整</b>${esc(o.film)}｜${esc(o.change)}｜${esc(o.why)}</div>`).join('')}
+  ${!has?'<div class="kv" style="color:var(--muted)">只填了狀態</div>':''}
+  ${e.updatedAt?`<div class="kv" style="color:var(--muted);font-size:12px">上傳 ${fmtTime(e.updatedAt)}</div>`:''}`; }
 function renderAll(){
   const list = $('#allList');
   const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
@@ -466,7 +448,7 @@ function renderAll(){
     const ips = Object.keys(wk).filter(ip => { const e=wk[ip]; if(filter==='all') return true; if(filter==='stuck') return e.status==='stuck'; if(filter==='wait') return e.status==='wait'; if(filter==='help') return !!e.help; return true; });
     if(filter!=='all' && !ips.length) return '';
     const rows = ips.length ? ips.map(ip => { const e = wk[ip]; const k = name+'|'+ip; const st = STATUS[e.status];
-      return `<div class="iprow ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st?st.cls:''}"></span><span>${esc(ip)}</span>${e.film?`<span class="film">${esc(e.film)}</span>`:''}${e.stage?`<span class="badge">${esc(e.stage)}</span>`:''}<span class="st">${st?st.label:'未填狀態'}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}</div></div>`; }).join('')
+      return `<div class="iprow ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st?st.cls:''}"></span><span>${esc(ip)}</span>${e.film?`<span class="film">${esc(e.film)}</span>`:''}<span class="st">${st?st.label:'未填狀態'}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}</div></div>`; }).join('')
       : `<div class="empty" style="padding:8px">這天沒填</div>`;
     return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${ips.length?ips.length+' 個 IP':''}</span></h3>${rows}</div>`;
   }).join('');
