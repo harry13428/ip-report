@@ -121,6 +121,8 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .iprow .ipname .cnt{font-weight:500;color:var(--muted);font-size:12px}
 .vid .t{display:flex;align-items:center;gap:8px;padding:8px 0 8px 6px;cursor:pointer;user-select:none;font-weight:600}
 .vid .t .film{font-size:14px}
+.det{font-size:12px;color:var(--muted);font-weight:500;background:var(--soft);padding:1px 7px;border-radius:999px;white-space:nowrap}
+.donerow .det{margin-left:-2px}
 .vid .t .st{font-size:12px;color:var(--muted);font-weight:500;margin-left:auto;white-space:nowrap}
 .vid .t .arrow{color:var(--muted);font-size:12px}
 .vid .d{display:none;padding:0 0 8px}
@@ -274,7 +276,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.0';
+const APP_VER = 'v4.1';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -283,19 +285,19 @@ const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等小優�
 const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
 const WD = ['日','一','二','三','四','五','六'];
 
-/* 狀態燈由內審／外審的答案自動判斷 */
+/* 狀態：右邊只顯示 內審／外審／已過片；細節（還在修改、IP 要修改…）顯示在片名旁邊 */
 function stateOf(e){
-  if(e.help) return { label:'⚠️ 需要主管協助', cls:'stuck' };
+  const cls = e.help ? 'stuck' : (e.stage==='外審' && e.ipReply==='IP 已過片') ? 'done' : (e.stage==='外審' && (e.ipReply==='已給 IP 看，未回覆'||e.ipReply==='IP 已回覆要修改')) ? 'wait' : (e.stage==='內審' && e.reason==='缺素材') ? 'wait' : '';
+  let stage = e.stage || '還沒填'; let detail = '';
   if(e.stage==='外審'){
-    if(e.ipReply==='IP 已過片') return { label:'✅ 已過片', cls:'done' };
-    if(e.ipReply==='已給 IP 看，未回覆') return { label:'🟡 等 IP 回覆', cls:'wait' };
-    if(e.ipReply==='IP 已回覆要修改') return { label:'🟠 IP 要修改', cls:'wait' };
-    if(e.ipReply==='還沒給 IP 看') return { label:'外審・還沒給 IP', cls:'' };
-    if(e.ipReply==='其他') return { label:'外審・'+(e.replyNote||'其他'), cls:'' };
-    return { label:'外審', cls:'' };
-  }
-  if(e.stage==='內審'){ const r = e.reason==='其他' ? (e.reasonNote||'其他') : e.reason; return { label:'內審'+(r?('・'+r):''), cls: e.reason==='缺素材' ? 'wait' : '' }; }
-  return { label:'還沒填', cls:'' };
+    if(e.ipReply==='IP 已過片'){ stage='✅ 已過片'; }
+    else if(e.ipReply==='已給 IP 看，未回覆') detail='等 IP 回覆';
+    else if(e.ipReply==='IP 已回覆要修改') detail='IP 要修改';
+    else if(e.ipReply==='還沒給 IP 看') detail='還沒給 IP';
+    else if(e.ipReply==='其他') detail=e.replyNote||'其他';
+  } else if(e.stage==='內審'){ detail = e.reason==='其他' ? (e.reasonNote||'其他') : (e.reason||''); }
+  if(e.help) detail = (detail?detail+'・':'') + '⚠️ 需要主管協助';
+  return { cls, stage, detail, label: stage + (detail?('・'+detail):'') };
 }
 
 /* ================= 小工具 ================= */
@@ -429,7 +431,7 @@ function renderMine(){
       <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天 ${done.length} 支已上傳`:''}</small></span>
         ${hasDraft?`<span class="badge dirty">${editing?'編輯中':'寫到一半'}</span>`:''}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        ${done.length?`<div class="donelist">${done.map(x=>{ const st=stateOf(x); return `<div class="donerow"><span class="sdot ${st.cls}"></span><span class="f">${esc(x.film||'（沒寫片名）')}</span><span class="s">${st.label}</span><button class="btn small" data-edit="${esc(x.film)}">編輯</button></div>`; }).join('')}</div>`:''}
+        ${done.length?`<div class="donelist">${done.map(x=>{ const st=stateOf(x); return `<div class="donerow"><span class="sdot ${st.cls}"></span><span class="f">${esc(x.film||'（沒寫片名）')}</span>${st.detail?`<span class="det">${esc(st.detail)}</span>`:''}<span class="s">${st.stage}</span><button class="btn small" data-edit="${esc(x.film)}">編輯</button></div>`; }).join('')}</div>`:''}
         <div class="formtitle">${editing?`✏️ 正在編輯「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:(done.length?'＋ 再寫一支':'寫一支影片')}</div>
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
         <div class="field"><label>影片狀態</label>
@@ -477,7 +479,7 @@ function renderMine(){
 
 /* ================= 畫面：全部人 ================= */
 function entryText(ip, e){
-  const L=[]; L.push(`${ip}｜${e.film||'（沒寫片名）'}　${stateOf(e).label}`);
+  const st0=stateOf(e); const L=[]; L.push(`${ip}｜${e.film||'（沒寫片名）'}　${st0.stage}${st0.detail?('（'+st0.detail+'）'):''}`);
   if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?(e.reasonNote||'其他'):e.reason}`);
   if(e.stage==='外審'){
     if(e.ipReply) L.push(`　給 IP 之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
@@ -517,7 +519,7 @@ function renderAll(){
     const rows = ips.length ? ips.map(ip => {
       const vids = wk[ip].filter(passFilter); n += vids.length;
       return `<div class="iprow"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 支</span></div>` + vids.map(e => { const k = name+'|'+ip+'|'+e.film; const st = stateOf(e);
-        return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st.cls}"></span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="st">${st.label}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}${name===cfg.name?`<div class="kv"><button class="btn small" data-edit-ip="${esc(ip)}" data-edit-film="${esc(e.film)}">✏️ 編輯這支</button></div>`:''}</div></div>`; }).join('') + `</div>`; }).join('')
+        return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st.cls}"></span><span class="film">${esc(e.film||'（沒寫片名）')}</span>${st.detail?`<span class="det">${esc(st.detail)}</span>`:''}<span class="st">${st.stage}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}${name===cfg.name?`<div class="kv"><button class="btn small" data-edit-ip="${esc(ip)}" data-edit-film="${esc(e.film)}">✏️ 編輯這支</button></div>`:''}</div></div>`; }).join('') + `</div>`; }).join('')
       : `<div class="empty" style="padding:8px">這天沒填</div>`;
     return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':''}</span></h3>${rows}</div>`;
   }).join('');
