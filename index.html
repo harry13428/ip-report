@@ -318,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.10';
+const APP_VER = 'v4.11';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -599,24 +599,25 @@ function renderMine(){
 }
 
 /* ================= 畫面：全部人 ================= */
-function entryText(ip, e){
-  const st0=stateOf(e); const L=[]; L.push(`${ip}｜${e.film||'（沒寫片名）'}　${st0.stage}${st0.detail?('（'+st0.detail+'）'):''}`);
-  if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?(e.reasonNote||'其他'):e.reason}`);
+function entryText(e){
+  const st0=stateOf(e); const L=[]; L.push(`　・${e.film||'（沒寫片名）'}　${st0.stage}${st0.detail?('（'+st0.detail+'）'):''}`);
+  if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　　還在內審因為：${e.reason==='其他'?(e.reasonNote||'其他'):e.reason}`);
   if(e.stage==='外審'){
-    if(e.ipReply) L.push(`　外審之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
-    if(e.pending) L.push(`　卡在哪：${e.pending}`);
-    if(e.chased) L.push(`　催過片：${e.chased}`);
-    if(e.reviewDate) L.push(`　外審日 ${fmtD(e.reviewDate)}`);
+    if(e.ipReply) L.push(`　　外審之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
+    if(e.pending) L.push(`　　卡在哪：${e.pending}`);
+    if(e.chased) L.push(`　　催過片：${e.chased}`);
+    if(e.reviewDate) L.push(`　　外審日 ${fmtD(e.reviewDate)}`);
   }
-  if(e.publishDate) L.push(`　預計上片 ${fmtD(e.publishDate)}`);
-  if(e.news) L.push(`　IP 新動態：${e.news}`);
-  (e.photos||[]).forEach(u=>L.push(`　截圖：${u}`));
-  (e.links||[]).forEach(u=>L.push(`　喜歡的風格：${u}`));
-  if(e.help) L.push(`　⚠️ 需要主管協助：${e.help}`);
+  if(e.publishDate) L.push(`　　預計上片 ${fmtD(e.publishDate)}`);
+  if(e.news) L.push(`　　IP 新動態：${e.news}`);
+  (e.photos||[]).forEach(u=>L.push(`　　截圖：${u}`));
+  (e.links||[]).forEach(u=>L.push(`　　喜歡的風格：${u}`));
+  if(e.help) L.push(`　　⚠️ 需要主管協助：${e.help}`);
   return L.join('\n');
 }
-function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk);
-  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.flatMap(ip=>wk[ip].map(e=>entryText(ip, e))).join('\n'); }
+/* 一個 IP 只出現一次，底下列它的片 */
+function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk).filter(ip=>wk[ip].length);
+  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.map(ip=>`■ ${ip}\n` + wk[ip].map(e=>entryText(e)).join('\n')).join('\n'); }
 function entryDetail(e){
   const rows = [];
   const row = (k, v, red) => rows.push(`<div class="k">${k}</div><div class="v ${red?'red':''}">${v}</div>`);
