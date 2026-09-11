@@ -188,6 +188,16 @@ a{color:var(--accent)}
         <div class="hint">出現「連線成功」就完成了，回到「我的回報」開始填。</div></div></div>
     </div>
 
+    <div class="card" id="linkCard" style="display:none">
+      <h3>專用連結（推薦這樣開）</h3>
+      <div class="sub">這個連結裡已經包含你的名字和鑰匙，用它開 App 就不用再貼鑰匙。存成書籤或「加入主畫面」，以後點它就好。</div>
+      <div id="storeWarn" class="guide" style="display:none;background:var(--warn-bg);color:var(--stuck)">⚠️ 這個瀏覽器不會記住設定，請一定用下面的專用連結開 App。</div>
+      <button class="btn primary block" id="btnCopyMyLink">📋 複製我的專用連結</button>
+      <div class="divider"></div>
+      <div class="sub">要給同事：打他的名字，複製給他的連結，用 LINE 私訊傳。他點開就能用。</div>
+      <div class="row"><input type="text" id="mateName" placeholder="同事名字（例：琪琪）" style="flex:1;min-width:140px"><button class="btn" id="btnCopyMateLink">複製給他的連結</button></div>
+    </div>
+
     <div class="card">
       <h3>鑰匙怎麼拿（KK 看這裡）</h3>
       <div class="sub">整個團隊共用一把鑰匙，做一次就好。</div>
@@ -221,7 +231,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v1.1';
+const APP_VER = 'v1.2';
 const OWNER = 'harry13428';
 const DATA_REPO = 'ip-report-data';
 const API_BASE = new URLSearchParams(location.search).get('api') || 'https://api.github.com';
@@ -452,17 +462,26 @@ $('#btnTest').onclick = async () => {
   const name = $('#setName').value.trim(); const token = $('#setToken').value.trim(); const res=$('#testResult');
   if(!name) return toast('先填名字'); if(!token) return toast('先貼鑰匙');
   cfg = { name, token }; res.style.display='inline-block'; res.className='badge'; res.textContent='測試中…';
-  try{ const chk = await gh(`/repos/${OWNER}/${DATA_REPO}`); if(chk.status===404){ const e=new Error('鑰匙沒有勾到 ip-report-data 這個倉庫，回 GitHub 重做一把'); e.status=404; throw e; } saveJSON(LS.cfg, cfg); ensureMine(); mine.name=name; persistDraft(); res.className='badge ok'; res.textContent='✓ 連線成功'; renderHeader(); toast('設定完成，去「我的回報」開始填'); await refreshAll(true); }
+  try{ const chk = await gh(`/repos/${OWNER}/${DATA_REPO}`); if(chk.status===404){ const e=new Error('鑰匙沒有勾到 ip-report-data 這個倉庫，回 GitHub 重做一把'); e.status=404; throw e; } saveJSON(LS.cfg, cfg); ensureMine(); mine.name=name; persistDraft(); res.className='badge ok'; res.textContent='✓ 連線成功'; renderHeader(); renderLinkCard(); if(!location.hash) history.replaceState(null,'',makeLink(cfg.name)); toast('設定完成，去「我的回報」開始填'); await refreshAll(true); }
   catch(e){ res.className='badge dirty'; res.textContent='✕ 失敗：' + (e.status===401?'鑰匙不對（貼錯或過期）':e.status===403?'鑰匙沒有權限':e.message); }
 };
 $('#btnClearToken').onclick = () => { if(!confirm('清除這台裝置的鑰匙？（回報資料不會消失）')) return; cfg.token=''; saveJSON(LS.cfg,cfg); $('#setToken').value=''; setSync('', '尚未設定鑰匙'); toast('已清除'); };
 $('#btnExport').onclick = () => { const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
 
+/* ================= 專用連結 ================= */
+function makeLink(name){ const u = location.origin + location.pathname; return `${u}#n=${encodeURIComponent(name)}&k=${encodeURIComponent(cfg.token)}`; }
+function renderLinkCard(){ const ok = !!(cfg.name && cfg.token); $('#linkCard').style.display = ok ? '' : 'none'; $('#storeWarn').style.display = storageOK ? 'none' : ''; }
+$('#btnCopyMyLink').onclick = () => copyText(makeLink(cfg.name));
+$('#btnCopyMateLink').onclick = () => { const n=$('#mateName').value.trim(); if(!n) return toast('先打同事名字'); copyText(makeLink(n)); };
+let storageOK = true; try{ localStorage.setItem('__t','1'); storageOK = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){ storageOK=false; }
+(function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const k=h.get('k'), n=h.get('n'); if(k){ cfg.token = k; if(n){ if(mine && mine.name && mine.name !== n){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} } cfg.name = n; } saveJSON(LS.cfg, cfg); } })();
+
 /* ================= 啟動 ================= */
 $('#ver').textContent = APP_VER; $('#repoLabel').textContent = `${OWNER}/${DATA_REPO}`;
 $('#setName').value = cfg.name||''; $('#setToken').value = cfg.token||'';
-renderHeader(); renderWeek(); ensureMine(); renderMine(); renderAll();
+renderHeader(); renderWeek(); ensureMine(); renderMine(); renderAll(); renderLinkCard();
 showPage((cfg.name && cfg.token) ? 'mine' : 'setup');
+if(cfg.name && cfg.token && !storageOK && !location.hash) toast('這個瀏覽器不會記住設定，請到「設定」複製專用連結');
 refreshAll(true);
 setInterval(() => { if(document.visibilityState==='visible' && !isDirty()) refreshAll(true); }, 60000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') refreshAll(true); });
