@@ -332,7 +332,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.1';
+const APP_VER = 'v5.2';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -371,7 +371,8 @@ let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.class
 function loadJSON(k, def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fmtTime(iso){ const d=new Date(iso); if(isNaN(d)) return ''; return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function fmtD(d){ if(!d) return ''; const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
+function fmtD(d){ if(!d) return ''; const k=String(d).slice(0,10); const [y,m,dd]=k.split('-'); if(!m||!dd) return String(d); return `${+m}/${+dd}`; }
+function dayKey(d){ return String(d||'').slice(0,10); }
 function shiftDay(key, n){ const x=parseYmd(key); x.setDate(x.getDate()+n); return ymd(x); }
 function dayLabel(key){ const d=parseYmd(key); const t=ymd(new Date());
   const tag = key===t ? '今天' : key===shiftDay(t,-1) ? '昨天' : key===shiftDay(t,1) ? '明天' : '';
@@ -575,7 +576,7 @@ function renderMine(){
       <div class="body">
         <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:'新增一支影片'}</div>
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
-        <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
+        <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(dayKey(e.publishDate))}"></div>
         <div class="field"><label>影片狀態</label>
           <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button><button class="${e.stage==='已完成'?'on done':''}" data-f="stage" data-v="已完成">3. 已完成</button></div></div>
         ${e.stage==='內審'?`
@@ -590,7 +591,7 @@ function renderMine(){
         <div class="field"><label>這支片卡在哪<small>沒有可留白</small></label><textarea data-f="pending" placeholder="例：IP 說要改音樂，還沒說要換哪首">${esc(e.pending)}</textarea></div>
         <div class="field"><label>有催 IP 過片了嗎？</label>
           <div class="seg"><button class="${e.chased==='有'?'on':''}" data-f="chased" data-v="有">有</button><button class="${e.chased==='還沒'?'on':''}" data-f="chased" data-v="還沒">還沒</button></div></div>
-        <div class="field"><label>什麼時候外審的</label><input type="date" data-f="reviewDate" value="${esc(e.reviewDate||'')}"></div>
+        <div class="field"><label>什麼時候外審的</label><input type="date" data-f="reviewDate" value="${esc(dayKey(e.reviewDate))}"></div>
         `:''}
         <details class="extra" ${(e.news||e.help||(e.photos||[]).length||(e.links||[]).length)?'open':''}>
           <summary>額外（選填）：IP 新動態、IP 喜歡的風格、需要主管協助</summary>

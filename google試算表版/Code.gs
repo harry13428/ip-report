@@ -66,7 +66,7 @@ function getAll(week){
     const wk = ed.weeks[o.week] || (ed.weeks[o.week] = {});
     (wk[o.ip] = wk[o.ip] || []).push({ film:String(o.film||''), stage:String(o.stage||''), reason:String(o.reason||''), reasonNote:String(o.reasonNote||''),
       ipReply:String(o.ipReply||''), replyNote:String(o.replyNote||''), pending:String(o.pending||''), chased:String(o.chased||''),
-      reviewDate:txtDay(o.reviewDate), publishDate:txtDay(o.publishDate), news:String(o.news||''), help:String(o.help||''),
+      reviewDate:txtDay(row[20]), publishDate:txtDay(row[21]), news:String(o.news||''), help:String(o.help||''),   // 直接拿原始格子轉，避免被當成日期
       photos:safeJson(o.photos, []), links:safeJson(o.links, []),
       status:String(o.status||''), updatedAt:String(o.updatedAt||'') });   // 一個 IP 一天可以有很多支片
   }
@@ -86,8 +86,8 @@ function saveEntry(b){
   if(rowIdx>0){
     const old = txt(vals[rowIdx-1][12]);
     if(e.updatedAt && old && old > e.updatedAt && b.force!==true) return { ok:true, skipped:true, reason:'server newer', updatedAt: old };
-    rs.getRange(rowIdx, 1, 1, row.length).setValues([row]);
-  } else rs.appendRow(row);
+    rs.getRange(rowIdx, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+  } else { const r = rs.getLastRow()+1; rs.getRange(r, 1, 1, row.length).setNumberFormat('@').setValues([row]); }   // 先設文字再寫，日期才不會被自動轉換
   if(Array.isArray(b.ips)) setIps(b.editor, b.ips);
   return { ok:true, updatedAt: now };
 }
