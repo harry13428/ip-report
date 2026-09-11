@@ -217,7 +217,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v2.1';
+const APP_VER = 'v2.2';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';            // ← Google Apps Script 網頁應用程式網址（…/exec），部署後填入
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';          // ← Google 試算表網址（給主管開）
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -270,17 +270,25 @@ function persistDraft(){ saveJSON(LS.draft, mine); }
 function weekMap(){ return everyone[week] || {}; }
 
 /* ================= Google 試算表 API ================= */
+/* Google 的回應偶爾會變成一頁 HTML（不是 JSON），遇到就自動重試 */
+async function fetchJSON(url, opt, tries=3){
+  let last='';
+  for(let i=0;i<tries;i++){
+    try{ const r = await fetch(url, opt); const t = await r.text(); if(t.trim().startsWith('{')){ const j = JSON.parse(t); if(!j.ok) throw new Error(j.error||'伺服器錯誤'); return j; } last='Google 暫時沒回應'; }
+    catch(e){ if(e.message && !/Google/.test(e.message) && !/JSON|fetch|network/i.test(e.message)) throw e; last=e.message||'連線失敗'; }
+    await new Promise(r=>setTimeout(r, 600*(i+1)));
+  }
+  throw new Error(last);
+}
 async function apiGet(params){
   if(!API) throw new Error('App 還沒接上試算表');
   const u = API + '?' + new URLSearchParams({ ...params, _: Date.now() });
-  const r = await fetch(u, { method:'GET', redirect:'follow', cache:'no-store' });
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'伺服器錯誤'); return j;
+  return fetchJSON(u, { method:'GET', redirect:'follow', cache:'no-store' });
 }
 async function apiPost(body){
   if(!API) throw new Error('App 還沒接上試算表');
   // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
-  const r = await fetch(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'伺服器錯誤'); return j;
+  return fetchJSON(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
 }
 function setSync(state, text){ const d=$('#syncDot'); d.className='dot '+(state||''); $('#syncText').textContent=text; }
 
