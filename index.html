@@ -304,6 +304,7 @@ a{color:var(--accent)}
       <button data-f="wait">🟡 等 IP 回覆</button>
       <button data-f="in">內審</button>
       <button data-f="out">外審</button>
+      <button data-f="done">✅ 已完成</button>
     </div>
     <div id="allList"></div>
   </section>
@@ -317,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.5';
+const APP_VER = 'v4.6';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -328,9 +329,10 @@ const WD = ['日','一','二','三','四','五','六'];
 
 /* 狀態：右邊只顯示 內審／外審／已過片；細節（還在修改、IP 要修改…）顯示在片名旁邊 */
 function stateOf(e){
-  const cls = e.help ? 'stuck' : (e.stage==='外審' && e.ipReply==='IP 已過片') ? 'done' : (e.stage==='外審' && (e.ipReply==='已給 IP 看，未回覆'||e.ipReply==='IP 已回覆要修改')) ? 'wait' : (e.stage==='內審' && e.reason==='缺素材') ? 'wait' : '';
+  const cls = e.help ? 'stuck' : (e.stage==='已完成' || (e.stage==='外審' && e.ipReply==='IP 已過片')) ? 'done' : (e.stage==='外審' && (e.ipReply==='已給 IP 看，未回覆'||e.ipReply==='IP 已回覆要修改')) ? 'wait' : (e.stage==='內審' && e.reason==='缺素材') ? 'wait' : '';
   let stage = e.stage || '還沒填'; let detail = '';
-  if(e.stage==='外審'){
+  if(e.stage==='已完成'){ stage='✅ 已完成'; }
+  else if(e.stage==='外審'){
     if(e.ipReply==='IP 已過片'){ stage='✅ 已過片'; }
     else if(e.ipReply==='已給 IP 看，未回覆') detail='等 IP 回覆';
     else if(e.ipReply==='IP 已回覆要修改') detail='IP 要修改';
@@ -338,7 +340,7 @@ function stateOf(e){
     else if(e.ipReply==='其他') detail=e.replyNote||'其他';
   } else if(e.stage==='內審'){ detail = e.reason==='其他' ? (e.reasonNote||'其他') : (e.reason||''); }
   if(e.help) detail = (detail?detail+'・':'') + '⚠️ 需要主管協助';
-  const scls = (e.stage==='外審' && e.ipReply==='IP 已過片') ? 'done' : e.stage==='內審' ? 'in' : e.stage==='外審' ? 'out' : 'none';
+  const scls = (e.stage==='已完成' || (e.stage==='外審' && e.ipReply==='IP 已過片')) ? 'done' : e.stage==='內審' ? 'in' : e.stage==='外審' ? 'out' : 'none';
   return { cls, stage, detail, scls, label: stage + (detail?('・'+detail):'') };
 }
 
@@ -541,7 +543,7 @@ function renderMine(){
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
         <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
         <div class="field"><label>影片狀態</label>
-          <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button></div></div>
+          <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button><button class="${e.stage==='已完成'?'on done':''}" data-f="stage" data-v="已完成">3. 已完成</button></div></div>
         ${e.stage==='內審'?`
         <div class="field"><label>為什麼還在內審？</label>
           <select data-f="reason">${['',...REASON_OPTS].map(o=>`<option value="${esc(o)}" ${e.reason===o?'selected':''}>${o||'請選擇'}</option>`).join('')}</select>
@@ -633,7 +635,7 @@ function entryDetail(e){
   if(e.help) h += `<div class="helpbox">⚠️ 需要主管協助：${esc(e.help)}</div>`;
   if(e.updatedAt) h += `<div class="meta">最後更新 ${fmtTime(e.updatedAt)}</div>`;
   return h; }
-function passFilter(e){ if(filter==='all') return true; if(filter==='help') return !!e.help; if(filter==='wait') return e.ipReply==='已給 IP 看，未回覆'; if(filter==='in') return e.stage==='內審'; if(filter==='out') return e.stage==='外審'; return true; }
+function passFilter(e){ if(filter==='all') return true; if(filter==='help') return !!e.help; if(filter==='wait') return e.ipReply==='已給 IP 看，未回覆'; if(filter==='in') return e.stage==='內審'; if(filter==='out') return e.stage==='外審'; if(filter==='done') return e.stage==='已完成' || e.ipReply==='IP 已過片'; return true; }
 function renderAll(){
   const list = $('#allList');
   const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
