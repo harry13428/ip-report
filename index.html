@@ -221,7 +221,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v1.0';
+const APP_VER = 'v1.1';
 const OWNER = 'harry13428';
 const DATA_REPO = 'ip-report-data';
 const API_BASE = new URLSearchParams(location.search).get('api') || 'https://api.github.com';
@@ -452,8 +452,8 @@ $('#btnTest').onclick = async () => {
   const name = $('#setName').value.trim(); const token = $('#setToken').value.trim(); const res=$('#testResult');
   if(!name) return toast('先填名字'); if(!token) return toast('先貼鑰匙');
   cfg = { name, token }; res.style.display='inline-block'; res.className='badge'; res.textContent='測試中…';
-  try{ await listEditors(); saveJSON(LS.cfg, cfg); ensureMine(); mine.name=name; persistDraft(); res.className='badge ok'; res.textContent='✓ 連線成功'; renderHeader(); toast('設定完成，去「我的回報」開始填'); await refreshAll(true); }
-  catch(e){ res.className='badge dirty'; res.textContent='✕ 失敗：' + (e.status===401?'鑰匙不對':e.status===403?'鑰匙沒有權限':e.message); }
+  try{ const chk = await gh(`/repos/${OWNER}/${DATA_REPO}`); if(chk.status===404){ const e=new Error('鑰匙沒有勾到 ip-report-data 這個倉庫，回 GitHub 重做一把'); e.status=404; throw e; } saveJSON(LS.cfg, cfg); ensureMine(); mine.name=name; persistDraft(); res.className='badge ok'; res.textContent='✓ 連線成功'; renderHeader(); toast('設定完成，去「我的回報」開始填'); await refreshAll(true); }
+  catch(e){ res.className='badge dirty'; res.textContent='✕ 失敗：' + (e.status===401?'鑰匙不對（貼錯或過期）':e.status===403?'鑰匙沒有權限':e.message); }
 };
 $('#btnClearToken').onclick = () => { if(!confirm('清除這台裝置的鑰匙？（回報資料不會消失）')) return; cfg.token=''; saveJSON(LS.cfg,cfg); $('#setToken').value=''; setSync('', '尚未設定鑰匙'); toast('已清除'); };
 $('#btnExport').onclick = () => { const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
