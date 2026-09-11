@@ -332,7 +332,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.2';
+const APP_VER = 'v5.3';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -752,6 +752,7 @@ $('#whoName').addEventListener('keydown', e => { if(e.key==='Enter') $('#whoGo')
 /* ================= 重新整理／新版本偵測 ================= */
 function hardReload(){ const u = location.pathname + '?r=' + Date.now() + location.hash; location.replace(u); }
 $('#btnReload').onclick = () => { toast('重新整理中…'); setTimeout(hardReload, 150); };
+$('#mReload').onclick = () => { closeDrawer(); toast('更新中…'); setTimeout(hardReload, 150); };
 async function checkVersion(){ try{ const r = await fetch(location.pathname + '?chk=' + Date.now(), { cache:'no-store' }); const t = await r.text(); const m = t.match(/APP_VER = '([^']+)'/); if(m && m[1] !== APP_VER){ const b=$('#newVer'); b.innerHTML = `<b>有新版本 ${esc(m[1])}</b>（你現在是 ${APP_VER}）— 點這裡更新`; b.style.display=''; b.onclick = hardReload; } }catch(e){} }
 setTimeout(checkVersion, 2500); setInterval(checkVersion, 5*60*1000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') checkVersion(); });
