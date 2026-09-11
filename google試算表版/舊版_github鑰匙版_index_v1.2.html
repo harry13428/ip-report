@@ -175,33 +175,47 @@ a{color:var(--accent)}
 
   <!-- ===== 設定 ===== -->
   <section class="page" id="page-setup">
-    <div id="apiWarn"></div>
     <div class="card steps">
-      <h3>第一次使用：填名字就好</h3>
-      <div class="step"><div class="n"></div><div class="c"><b>你的名字</b>
+      <h3>第一次使用：三步就好</h3>
+      <div class="step"><div class="n"></div><div class="c"><b>填你的名字</b>
         <input type="text" id="setName" placeholder="例：KK、琪琪、小貓">
         <div class="hint">大家會用這個名字看到你的回報。之後不要改名，改了會變成另一個人。</div></div></div>
-      <div class="step"><div class="n"></div><div class="c"><b>按確定</b>
-        <div class="row"><button class="btn primary" id="btnTest">確定並測試連線</button><span id="testResult" class="badge" style="display:none"></span></div>
+      <div class="step"><div class="n"></div><div class="c"><b>貼上鑰匙</b>
+        <div class="row"><input type="password" id="setToken" placeholder="貼上 github_pat_ 開頭的鑰匙" style="flex:1;min-width:160px"><button class="btn small" id="btnPasteToken">貼上</button><button class="btn small" id="btnShowToken">看</button></div>
+        <div class="hint">鑰匙由 KK 傳給你（LINE 貼過來）。只要貼一次，這台手機／電腦會記住。</div></div></div>
+      <div class="step"><div class="n"></div><div class="c"><b>測試連線</b>
+        <div class="row"><button class="btn primary" id="btnTest">測試連線並儲存設定</button><span id="testResult" class="badge" style="display:none"></span></div>
         <div class="hint">出現「連線成功」就完成了，回到「我的回報」開始填。</div></div></div>
     </div>
 
     <div class="card" id="linkCard" style="display:none">
-      <h3>專用連結</h3>
-      <div class="sub">這個連結已經帶著你的名字，用它開 App 連名字都不用填。手機可以「加入主畫面」當 App。</div>
-      <div id="storeWarn" class="guide" style="display:none;background:var(--warn-bg);color:var(--stuck)">⚠️ 這個瀏覽器不會記住名字，請用專用連結開 App。</div>
+      <h3>專用連結（推薦這樣開）</h3>
+      <div class="sub">這個連結裡已經包含你的名字和鑰匙，用它開 App 就不用再貼鑰匙。存成書籤或「加入主畫面」，以後點它就好。</div>
+      <div id="storeWarn" class="guide" style="display:none;background:var(--warn-bg);color:var(--stuck)">⚠️ 這個瀏覽器不會記住設定，請一定用下面的專用連結開 App。</div>
       <button class="btn primary block" id="btnCopyMyLink">📋 複製我的專用連結</button>
       <div class="divider"></div>
-      <div class="sub">要給同事：打他的名字，複製給他的連結，傳給他。他點開就是他自己的。</div>
+      <div class="sub">要給同事：打他的名字，複製給他的連結，用 LINE 私訊傳。他點開就能用。</div>
       <div class="row"><input type="text" id="mateName" placeholder="同事名字（例：琪琪）" style="flex:1;min-width:140px"><button class="btn" id="btnCopyMateLink">複製給他的連結</button></div>
     </div>
 
     <div class="card">
+      <h3>鑰匙怎麼拿（KK 看這裡）</h3>
+      <div class="sub">整個團隊共用一把鑰匙，做一次就好。</div>
+      <ol style="padding-left:20px;margin:0;font-size:14px;line-height:1.7">
+        <li>用電腦開 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>（登入 harry13428）</li>
+        <li>Token name 打「IP週報」；Expiration 選最長的</li>
+        <li>Repository access 選「Only select repositories」→ 只勾 <span class="mono">ip-report-data</span></li>
+        <li>Permissions → Repository permissions → <b>Contents</b> 改成 <b>Read and write</b></li>
+        <li>最下面按 Generate token → 把 <span class="mono">github_pat_…</span> 整串複製，貼到上面第 2 步，並傳給同事</li>
+      </ol>
+    </div>
+
+    <div class="card">
       <h3>資料放在哪</h3>
-      <div class="sub">所有人的回報都自動寫進 Google 試算表「IP週報」，主管可以直接開試算表看。</div>
+      <div class="sub">所有人的回報都存在 GitHub 私人倉庫 <span class="mono" id="repoLabel"></span>，只有拿到鑰匙的人看得到。每次按「儲存並上傳」就會同步給大家。</div>
       <div class="row">
-        <a class="btn" id="sheetLink" href="#" target="_blank" rel="noopener">📊 打開 Google 試算表</a>
         <button class="btn" id="btnExport">下載我的本機備份</button>
+        <button class="btn danger" id="btnClearToken">清除鑰匙</button>
       </div>
     </div>
     <div class="ver">IP 週報 <span id="ver"></span></div>
@@ -217,11 +231,11 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v2.0';
-const API_URL = '';            // ← Google Apps Script 網頁應用程式網址（…/exec），部署後填入
-const SHEET_URL = '';          // ← Google 試算表網址（給主管開）
-const API = new URLSearchParams(location.search).get('api') || API_URL;
-const LS = { cfg: 'ipreport_cfg_v2', draft: 'ipreport_draft_v2', cache: 'ipreport_cache_v2' };
+const APP_VER = 'v1.2';
+const OWNER = 'harry13428';
+const DATA_REPO = 'ip-report-data';
+const API_BASE = new URLSearchParams(location.search).get('api') || 'https://api.github.com';
+const LS = { cfg: 'ipreport_cfg_v1', draft: 'ipreport_draft_v1', cache: 'ipreport_cache_v1' };
 const STATUS = {
   ok:   { label:'🟢 順利',  cls:'ok'   },
   wait: { label:'🟡 等回覆', cls:'wait' },
@@ -241,10 +255,11 @@ const nowStr = () => { const d=new Date(); return `${pad(d.getMonth()+1)}/${pad(
 let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 function loadJSON(k, def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-function fmtTime(iso){ const d=new Date(iso); if(isNaN(d)) return ''; return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+const utf8b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const b64utf8 = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,'')), c=>c.charCodeAt(0)));
 
 /* 週：以「週五」為一週結束。週六、週日算下一週。 */
-function fridayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); const wd=x.getDay();
+function fridayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); const wd=x.getDay(); // 0=日
   let diff = (5 - wd + 7) % 7; if (wd===6) diff = 6; if (wd===0) diff = 5; x.setDate(x.getDate()+diff); return x; }
 function shiftWeek(key, n){ const [y,m,d]=key.split('-').map(Number); const x=new Date(y,m-1,d); x.setDate(x.getDate()+7*n); return ymd(x); }
 function weekLabel(key){ const [y,m,d]=key.split('-').map(Number); const f=new Date(y,m-1,d); const s=new Date(f); s.setDate(f.getDate()-6);
@@ -253,79 +268,88 @@ function weekLabel(key){ const [y,m,d]=key.split('-').map(Number); const f=new D
   return { main:`${tag?tag+'・':''}${m}/${d}（五）回報`, sub:`${s.getMonth()+1}/${s.getDate()} – ${m}/${d}` }; }
 
 /* ================= 狀態 ================= */
-let cfg = loadJSON(LS.cfg, { name:'' });
+let cfg = loadJSON(LS.cfg, { name:'', token:'' });
 let week = ymd(fridayOf(new Date()));
-let mine = loadJSON(LS.draft, null);        // 我的檔（含草稿）：{name, ips, weeks:{week:{ip:entry}}}
-let remoteMine = null;                      // 伺服器上我的版本（拿來還原、判斷未上傳）
-let everyone = loadJSON(LS.cache, {});      // week -> { name -> {name, ips, weeks:{week:{ip:entry}}} }
+let mine = loadJSON(LS.draft, null);      // 我的檔（含草稿）
+let remoteMine = null;                    // 我上次上傳成功的版本（拿來還原）
+let mineSha = null;
+let everyone = loadJSON(LS.cache, {});    // name -> file json
 let filter = 'all';
 let openIp = null;
-let storageOK = true; try{ localStorage.setItem('__t','1'); storageOK = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){ storageOK=false; }
 
 function blankEntry(){ return { status:'', pending:'', chase:'', news:'', pass:'無', assets:'無', assetsNote:'', help:'', opening:[], updatedAt:'' }; }
-function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
+function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{}, updatedAt:'' }; if(cfg.name) mine.name = cfg.name; if(!mine.weeks) mine.weeks={}; if(!mine.ips) mine.ips=[]; return mine; }
 function entry(ip){ ensureMine(); mine.weeks[week] ||= {}; mine.weeks[week][ip] ||= blankEntry(); return mine.weeks[week][ip]; }
+function isDirty(){ return JSON.stringify(stripMeta(mine)) !== JSON.stringify(stripMeta(remoteMine)); }
 function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; return c; }
 function persistDraft(){ saveJSON(LS.draft, mine); }
-function weekMap(){ return everyone[week] || {}; }
 
-/* ================= Google 試算表 API ================= */
-async function apiGet(params){
-  if(!API) throw new Error('App 還沒接上試算表');
-  const u = API + '?' + new URLSearchParams({ ...params, _: Date.now() });
-  const r = await fetch(u, { method:'GET', redirect:'follow', cache:'no-store' });
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'伺服器錯誤'); return j;
+/* ================= GitHub API ================= */
+async function gh(path, opt={}){
+  const headers = { 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(opt.headers||{}) };
+  if(cfg.token) headers['Authorization'] = 'Bearer ' + cfg.token;
+  const r = await fetch(API_BASE + path + (path.includes('?')?'&':'?') + '_=' + Date.now(), { ...opt, headers, cache:'no-store' });
+  if(r.status===404) return { status:404 };
+  let body=null; try{ body = await r.json(); }catch(e){}
+  if(!r.ok){ const e = new Error(body?.message || ('HTTP '+r.status)); e.status=r.status; throw e; }
+  return { status:r.status, body };
 }
-async function apiPost(body){
-  if(!API) throw new Error('App 還沒接上試算表');
-  // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
-  const r = await fetch(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||'伺服器錯誤'); return j;
+const filePath = name => `editors/${encodeURIComponent(name)}.json`;
+async function getFile(name){ const r = await gh(`/repos/${OWNER}/${DATA_REPO}/contents/${filePath(name)}`); if(r.status===404) return null; return { sha:r.body.sha, json: JSON.parse(b64utf8(r.body.content)) }; }
+async function putFile(name, obj, sha){ const r = await gh(`/repos/${OWNER}/${DATA_REPO}/contents/${filePath(name)}`, { method:'PUT', body: JSON.stringify({ message:`${name} 更新 ${week} 週報`, content: utf8b64(JSON.stringify(obj,null,1)), ...(sha?{sha}:{}) }) }); return r.body.content.sha; }
+async function listEditors(){ const r = await gh(`/repos/${OWNER}/${DATA_REPO}/contents/editors`); if(r.status===404) return []; return (r.body||[]).filter(f=>f.type==='file' && f.name.endsWith('.json')).map(f=>decodeURIComponent(f.name.replace(/\.json$/,''))); }
+
+/* 合併：以每個「週×IP」的 updatedAt 新者為準（同一個人兩台裝置也不會互蓋） */
+function mergeMine(remote, local){
+  if(!remote) return local; if(!local) return remote;
+  const out = JSON.parse(JSON.stringify(remote));
+  out.ips = [...new Set([...(remote.ips||[]), ...(local.ips||[])])];
+  for(const wk of Object.keys(local.weeks||{})){ out.weeks[wk] ||= {}; for(const ip of Object.keys(local.weeks[wk])){ const L=local.weeks[wk][ip], R=out.weeks[wk][ip]; if(!R || (L.updatedAt||'') >= (R.updatedAt||'')) out.weeks[wk][ip]=L; } }
+  return out;
 }
+
 function setSync(state, text){ const d=$('#syncDot'); d.className='dot '+(state||''); $('#syncText').textContent=text; }
 
 async function refreshAll(silent){
-  if(!API){ setSync('err', '還沒接上試算表'); renderAll(); renderMine(); return; }
+  if(!cfg.token){ setSync('', '尚未設定鑰匙'); return; }
   setSync('busy', '下載中…');
   try{
-    const j = await apiGet({ action:'all', week });
-    everyone[week] = j.editors || {}; saveJSON(LS.cache, everyone);
-    if(cfg.name && j.editors[cfg.name]){
-      remoteMine = j.editors[cfg.name];
-      ensureMine();
-      // 伺服器的 IP 清單與本機合併；每個 IP 這週的內容以 updatedAt 新者為準
-      mine.ips = [...new Set([...(remoteMine.ips||[]), ...mine.ips])];
-      const rw = remoteMine.weeks?.[week] || {}; mine.weeks[week] ||= {};
-      for(const ip of Object.keys(rw)){ const L = mine.weeks[week][ip]; if(!L || (rw[ip].updatedAt||'') >= (L.updatedAt||'')) mine.weeks[week][ip] = JSON.parse(JSON.stringify(rw[ip])); }
-      persistDraft();
-    } else remoteMine = null;
+    const names = await listEditors();
+    const files = await Promise.all(names.map(n => getFile(n).catch(()=>null)));
+    const map = {}; names.forEach((n,i)=>{ if(files[i]) map[n]=files[i].json; });
+    everyone = map; saveJSON(LS.cache, everyone);
+    if(cfg.name && map[cfg.name]){
+      const idx = names.indexOf(cfg.name); mineSha = files[idx].sha; remoteMine = map[cfg.name];
+      // 遠端有更新（例如在另一台裝置填的）→ 合併進本機草稿
+      mine = mergeMine(remoteMine, mine); persistDraft();
+    }
     setSync('ok', '已同步 ' + nowStr());
     if(!silent) toast('已更新大家的回報');
   }catch(e){ setSync('err', '同步失敗'); if(!silent) toast('下載失敗：' + e.message); }
   renderAll(); renderMine();
 }
 
-async function uploadIp(ip){
-  if(!cfg.name){ toast('先到「設定」填名字'); showPage('setup'); return; }
+async function upload(){
+  if(!cfg.token || !cfg.name){ toast('先到「設定」填名字、貼鑰匙'); showPage('setup'); return; }
   setSync('busy', '上傳中…');
   try{
-    const e = entry(ip); e.updatedAt = new Date().toISOString(); persistDraft();
-    const j = await apiPost({ action:'save', editor:cfg.name, week, ip, entry:e, ips:mine.ips });
-    if(j.skipped){ toast('伺服器上有更新的版本，先重新整理再改'); await refreshAll(true); return; }
-    e.updatedAt = j.updatedAt || e.updatedAt; persistDraft();
-    remoteMine ||= { name:cfg.name, ips:[], weeks:{} }; remoteMine.ips = [...mine.ips]; remoteMine.weeks[week] ||= {}; remoteMine.weeks[week][ip] = JSON.parse(JSON.stringify(e));
-    everyone[week] ||= {}; everyone[week][cfg.name] = JSON.parse(JSON.stringify(remoteMine)); saveJSON(LS.cache, everyone);
+    for(let attempt=0; attempt<2; attempt++){
+      const cur = await getFile(cfg.name);            // 先抓最新版，避免蓋掉別台裝置
+      const merged = mergeMine(cur?cur.json:null, mine);
+      merged.name = cfg.name; merged.updatedAt = new Date().toISOString();
+      try{ mineSha = await putFile(cfg.name, merged, cur?cur.sha:null); mine = merged; remoteMine = JSON.parse(JSON.stringify(merged)); persistDraft(); everyone[cfg.name]=merged; saveJSON(LS.cache, everyone); break; }
+      catch(e){ if((e.status===409||e.status===422) && attempt===0) continue; throw e; }
+    }
     setSync('ok', '已上傳 ' + nowStr()); toast('已上傳，大家都看得到了');
   }catch(e){ setSync('err', '上傳失敗'); toast('上傳失敗：' + e.message); }
   renderMine(); renderAll();
 }
-async function uploadIps(){ if(!cfg.name || !API) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:mine.ips }); }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
   const g = { mine:'<b>怎麼用：</b>① 點 IP 展開 → ② 選狀態、填卡點 → ③ 按「儲存並上傳」。改到一半沒上傳會標「未上傳」。',
               all:'<b>這頁：</b>大家這週的回報。紅色＝需要主管協助。上面可以切週、用篩選只看卡住的。',
-              setup:'<b>第一次：</b>填名字 → 按確定。之後不用再進來。' }[p];
+              setup:'<b>第一次：</b>填名字 → 貼鑰匙 → 測試連線。之後不用再進來。' }[p];
   $('#guide').innerHTML = g; window.scrollTo(0,0); }
 function renderWeek(){ const w=weekLabel(week); $('#wkLabel').textContent=w.main; $('#wkSub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name ? cfg.name : '（未設定名字）'; }
@@ -334,21 +358,19 @@ function renderHeader(){ $('#whoami').textContent = cfg.name ? cfg.name : '（�
 function renderMine(){
   ensureMine();
   const hint = $('#mineSetupHint');
-  hint.innerHTML = !API ? `<div class="card" style="border:2px solid var(--stuck)"><h3>App 還沒接上試算表</h3><div class="sub">請 KK 先照「google試算表版／部署步驟」把試算表接好。</div></div>`
-    : (!cfg.name ? `<div class="card" style="border:2px solid var(--accent)"><h3>還沒填名字</h3><div class="sub">先到「設定」填名字，回報才會算在你身上。</div><button class="btn primary" onclick="showPage('setup')">去設定</button></div>` : '');
+  hint.innerHTML = (!cfg.name || !cfg.token) ? `<div class="card" style="border:2px solid var(--accent)"><h3>還沒設定</h3><div class="sub">先到「設定」填名字、貼鑰匙，回報才能同步給大家。</div><button class="btn primary" onclick="showPage('setup')">去設定</button></div>` : '';
   const chips = $('#ipChips');
   chips.innerHTML = mine.ips.length ? mine.ips.map(ip => `<span class="pill">${esc(ip)} <button title="移除這個 IP" data-rm="${esc(ip)}">✕</button></span>`).join('') : '<span class="empty" style="padding:6px">還沒有 IP，先在下面新增。</span>';
-  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已填過的舊週回報會保留，只是不再顯示）`)){ mine.ips = mine.ips.filter(x=>x!==ip); persistDraft(); uploadIps(); renderMine(); } });
+  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已填過的舊週回報會保留，只是不再顯示）`)){ mine.ips = mine.ips.filter(x=>x!==ip); persistDraft(); renderMine(); } });
 
   const wrap = $('#ipCards'); wrap.innerHTML = '';
   mine.ips.forEach(ip => {
     const e = entry(ip); const st = STATUS[e.status];
-    const remote = remoteMine?.weeks?.[week]?.[ip] || null;
-    const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remote || blankEntry()));
+    const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remoteMine?.weeks?.[week]?.[ip] || blankEntry()));
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
       <div class="head" data-ip="${esc(ip)}"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}</span>
-        ${dirtyIp?'<span class="badge dirty">未上傳</span>':(remote?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
+        ${dirtyIp?'<span class="badge dirty">未上傳</span>':(e.updatedAt?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
         <div class="field"><label>這支 IP 這週的狀態</label>
           <div class="seg status-seg">${Object.entries(STATUS).map(([k,v])=>`<button class="${e.status===k?'on '+v.cls:''}" data-f="status" data-v="${k}">${v.label}</button>`).join('')}</div></div>
@@ -360,14 +382,14 @@ function renderMine(){
           <textarea data-f="assetsNote" style="margin-top:8px;min-height:44px" placeholder="缺什麼素材（沒缺可留白）">${esc(e.assetsNote)}</textarea></div>
         <div class="field"><label>6. 需要主管協助<small>會用紅色顯示給主管</small></label><textarea data-f="help" placeholder="自己處理不了、需要主管出面的事（沒有可留白）">${esc(e.help)}</textarea></div>
         <div class="field"><label>7. 本週開頭調整<small>片名／改了什麼／為什麼</small></label>
-          <div>${(e.opening||[]).map((o,i)=>openingRow(o,i)).join('')}</div>
+          <div id="op-${esc(ip)}">${(e.opening||[]).map((o,i)=>openingRow(o,i)).join('')}</div>
           <button class="btn small" data-addop="1" style="margin-top:8px">＋ 加一支</button></div>
         <div class="divider"></div>
         <div class="row">
           <button class="btn primary" data-save="1" style="flex:1">💾 儲存並上傳</button>
           <button class="btn" data-revert="1" ${dirtyIp?'':'disabled'}>↩ 還原成上次上傳</button>
         </div>
-        <div class="hint" style="font-size:12px;color:var(--muted);margin-top:6px">${remote?.updatedAt?('上次上傳：'+fmtTime(remote.updatedAt)):'還沒上傳過'}</div>
+        <div class="hint" style="font-size:12px;color:var(--muted);margin-top:6px">${e.updatedAt?('上次上傳：'+fmtTime(e.updatedAt)):'還沒上傳過'}</div>
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
@@ -376,16 +398,18 @@ function renderMine(){
     });
     card.querySelector('[data-addop]').onclick = () => { entry(ip).opening.push({film:'',change:'',why:''}); persistDraft(); renderMine(); };
     card.querySelectorAll('[data-op]').forEach(el => { const i=+el.dataset.op; if(el.dataset.rmop!==undefined){ el.onclick=()=>{ entry(ip).opening.splice(i,1); persistDraft(); renderMine(); }; } else { el.oninput=()=>{ entry(ip).opening[i][el.dataset.k]=el.value; persistDraft(); markDirty(card); }; } });
-    card.querySelector('[data-save]').onclick = () => uploadIp(ip);
-    card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這週的內容還原成上次上傳的版本？')) return; mine.weeks[week][ip] = remote ? JSON.parse(JSON.stringify(remote)) : blankEntry(); persistDraft(); renderMine(); };
+    card.querySelector('[data-save]').onclick = () => { entry(ip).updatedAt = new Date().toISOString(); persistDraft(); upload(); };
+    card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這週的內容還原成上次上傳的版本？')) return; const r = remoteMine?.weeks?.[week]?.[ip]; mine.weeks[week][ip] = r ? JSON.parse(JSON.stringify(r)) : blankEntry(); persistDraft(); renderMine(); };
     wrap.appendChild(card);
   });
+  if(!mine.ips.length) wrap.innerHTML = '';
 }
 function openingRow(o,i){ return `<div class="openrow"><input type="text" data-op="${i}" data-k="film" placeholder="片名" value="${esc(o.film)}"><input type="text" data-op="${i}" data-k="change" placeholder="開頭改了什麼／勾子是什麼" value="${esc(o.change)}"><input type="text" data-op="${i}" data-k="why" placeholder="為什麼這樣剪" value="${esc(o.why)}"><button class="btn small rm" data-op="${i}" data-rmop="1">移除</button></div>`; }
 function markDirty(card){ const b=card.querySelector('.head .badge'); if(b){ b.className='badge dirty'; b.textContent='未上傳'; } else { const s=document.createElement('span'); s.className='badge dirty'; s.textContent='未上傳'; card.querySelector('.head .name').after(s); } const rv=card.querySelector('[data-revert]'); if(rv) rv.disabled=false; }
+function fmtTime(iso){ const d=new Date(iso); if(isNaN(d)) return ''; return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
 /* ================= 畫面：全部人 ================= */
-function entryText(ip, e){
+function entryText(ip, e, withName){
   const L=[]; L.push(`${STATUS[e.status]?.label || '⚪ 未填狀態'}　${ip}`);
   if(e.pending) L.push(`　沒過的片／卡在哪：${e.pending}`);
   if(e.chase) L.push(`　追過沒／回覆：${e.chase}`);
@@ -399,12 +423,11 @@ function entryText(ip, e){
 function personText(name, file){ const wk=file?.weeks?.[week]||{}; const ips=(file?.ips||[]).filter(ip=>wk[ip]); const extra=Object.keys(wk).filter(ip=>!ips.includes(ip)); const all=[...ips,...extra];
   if(!all.length) return `【${name}】這週還沒填`; return `【${name}】\n` + all.map(ip=>entryText(ip, wk[ip])).join('\n'); }
 function renderAll(){
-  const list = $('#allList'); const map = weekMap();
-  const names = Object.keys(map).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
-  if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">${API?'這週還沒有任何人上傳回報。':'App 還沒接上試算表。'}</div></div>`; return; }
+  const list = $('#allList'); const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
+  if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">${cfg.token?'還沒有任何人上傳回報。':'先到「設定」貼鑰匙，才看得到大家的回報。'}</div></div>`; return; }
   list.innerHTML = names.map(name => {
-    const file = map[name]; const wk = file.weeks?.[week] || {};
-    let ips = [...new Set([...(file.ips||[]), ...Object.keys(wk)])];
+    const file = everyone[name]; const wk = file.weeks?.[week] || {};
+    let ips = [...new Set([...(file.ips||[]), ...Object.keys(wk)])].filter(ip => wk[ip] || filter==='all');
     ips = ips.filter(ip => { const e=wk[ip]; if(filter==='all') return true; if(!e) return false; if(filter==='stuck') return e.status==='stuck'; if(filter==='wait') return e.status==='wait'; if(filter==='help') return !!e.help; return true; });
     if(filter!=='all' && !ips.length) return '';
     const rows = ips.length ? ips.map(ip => { const e = wk[ip]; if(!e) return `<div class="iprow"><div class="t"><span class="sdot"></span>${esc(ip)}<span class="st">這週還沒填</span></div></div>`;
@@ -417,50 +440,50 @@ function renderAll(){
         ${e.help?`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`:''}
         ${(e.opening||[]).filter(o=>o.film||o.change||o.why).map(o=>`<div class="kv"><b>開頭調整</b>${esc(o.film)}｜${esc(o.change)}｜${esc(o.why)}</div>`).join('')}
       </div>`; }).join('') : `<div class="empty">這週還沒填</div>`;
-    const last = Object.values(wk).map(e=>e.updatedAt||'').sort().pop();
-    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${last?('更新 '+fmtTime(last)):''}</span></h3>${rows}</div>`;
+    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${file.updatedAt?('更新 '+fmtTime(file.updatedAt)):''}</span></h3>${rows}</div>`;
   }).join('') || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
 }
 
-/* ================= 專用連結 ================= */
-function makeLink(name){ return location.origin + location.pathname + `#n=${encodeURIComponent(name)}`; }
-function renderLinkCard(){ $('#linkCard').style.display = cfg.name ? '' : 'none'; $('#storeWarn').style.display = storageOK ? 'none' : ''; }
-(function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const n=h.get('n'); if(n){ if(mine && mine.name && mine.name !== n){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} } cfg.name = n; saveJSON(LS.cfg, cfg); } })();
-
 /* ================= 事件 ================= */
 $$('.tabs button').forEach(b => b.onclick = () => showPage(b.dataset.page));
-$('#wkPrev').onclick = () => { week = shiftWeek(week,-1); renderWeek(); refreshAll(true); };
-$('#wkNext').onclick = () => { week = shiftWeek(week, 1); renderWeek(); refreshAll(true); };
+$('#wkPrev').onclick = () => { week = shiftWeek(week,-1); renderWeek(); renderMine(); renderAll(); };
+$('#wkNext').onclick = () => { week = shiftWeek(week, 1); renderWeek(); renderMine(); renderAll(); };
 $('#btnRefresh').onclick = () => refreshAll(false);
-$('#btnAddIp').onclick = () => { const v = $('#newIpName').value.trim(); if(!v) return toast('先打 IP 名字'); ensureMine(); if(mine.ips.includes(v)) return toast('已經有這個 IP 了'); mine.ips.push(v); $('#newIpName').value=''; openIp=v; persistDraft(); uploadIps(); renderMine(); };
+$('#btnAddIp').onclick = () => { const v = $('#newIpName').value.trim(); if(!v) return toast('先打 IP 名字'); ensureMine(); if(mine.ips.includes(v)) return toast('已經有這個 IP 了'); mine.ips.push(v); $('#newIpName').value=''; openIp=v; persistDraft(); renderMine(); };
 $('#newIpName').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnAddIp').click(); });
 $$('.filters button').forEach(b => b.onclick = () => { filter=b.dataset.f; $$('.filters button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
 $('#btnCopyMine').onclick = () => copyText(personText(cfg.name||'我', mine));
-$('#btnCopyAll').onclick = () => { const w=weekLabel(week); const map=weekMap(); copyText(`📋 IP 週報 ${w.main}（${w.sub}）\n\n` + Object.keys(map).sort().map(n=>personText(n, map[n])).join('\n\n')); };
-async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('手動複製：', t); } }
-$('#btnCopyMyLink').onclick = () => copyText(makeLink(cfg.name));
-$('#btnCopyMateLink').onclick = () => { const n=$('#mateName').value.trim(); if(!n) return toast('先打同事名字'); copyText(makeLink(n)); };
+$('#btnCopyAll').onclick = () => { const w=weekLabel(week); copyText(`📋 IP 週報 ${w.main}（${w.sub}）\n\n` + Object.keys(everyone).sort().map(n=>personText(n, everyone[n])).join('\n\n')); };
+async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製，去群組貼上'); }catch(e){ prompt('手動複製：', t); } }
+
+$('#btnPasteToken').onclick = async () => { try{ const t = await navigator.clipboard.readText(); if(t){ $('#setToken').value = t.trim(); toast('已貼上'); } }catch(e){ toast('瀏覽器不給讀剪貼簿，請長按欄位貼上'); } };
+$('#btnShowToken').onclick = () => { const i=$('#setToken'); i.type = i.type==='password'?'text':'password'; };
 $('#btnTest').onclick = async () => {
-  const name = $('#setName').value.trim(); const res=$('#testResult');
-  if(!name) return toast('先填名字');
-  if(mine && mine.name && mine.name !== name){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} }
-  cfg = { name }; saveJSON(LS.cfg, cfg); ensureMine(); persistDraft(); renderHeader(); renderLinkCard();
-  res.style.display='inline-block'; res.className='badge'; res.textContent='測試中…';
-  try{ await apiGet({ action:'ping' }); res.className='badge ok'; res.textContent='✓ 連線成功'; toast('設定完成，去「我的回報」開始填'); if(!location.hash) history.replaceState(null,'',makeLink(name)); await refreshAll(true); }
-  catch(e){ res.className='badge dirty'; res.textContent='✕ 連不上試算表：' + e.message; }
+  const name = $('#setName').value.trim(); const token = $('#setToken').value.trim(); const res=$('#testResult');
+  if(!name) return toast('先填名字'); if(!token) return toast('先貼鑰匙');
+  cfg = { name, token }; res.style.display='inline-block'; res.className='badge'; res.textContent='測試中…';
+  try{ const chk = await gh(`/repos/${OWNER}/${DATA_REPO}`); if(chk.status===404){ const e=new Error('鑰匙沒有勾到 ip-report-data 這個倉庫，回 GitHub 重做一把'); e.status=404; throw e; } saveJSON(LS.cfg, cfg); ensureMine(); mine.name=name; persistDraft(); res.className='badge ok'; res.textContent='✓ 連線成功'; renderHeader(); renderLinkCard(); if(!location.hash) history.replaceState(null,'',makeLink(cfg.name)); toast('設定完成，去「我的回報」開始填'); await refreshAll(true); }
+  catch(e){ res.className='badge dirty'; res.textContent='✕ 失敗：' + (e.status===401?'鑰匙不對（貼錯或過期）':e.status===403?'鑰匙沒有權限':e.message); }
 };
+$('#btnClearToken').onclick = () => { if(!confirm('清除這台裝置的鑰匙？（回報資料不會消失）')) return; cfg.token=''; saveJSON(LS.cfg,cfg); $('#setToken').value=''; setSync('', '尚未設定鑰匙'); toast('已清除'); };
 $('#btnExport').onclick = () => { const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
 
+/* ================= 專用連結 ================= */
+function makeLink(name){ const u = location.origin + location.pathname; return `${u}#n=${encodeURIComponent(name)}&k=${encodeURIComponent(cfg.token)}`; }
+function renderLinkCard(){ const ok = !!(cfg.name && cfg.token); $('#linkCard').style.display = ok ? '' : 'none'; $('#storeWarn').style.display = storageOK ? 'none' : ''; }
+$('#btnCopyMyLink').onclick = () => copyText(makeLink(cfg.name));
+$('#btnCopyMateLink').onclick = () => { const n=$('#mateName').value.trim(); if(!n) return toast('先打同事名字'); copyText(makeLink(n)); };
+let storageOK = true; try{ localStorage.setItem('__t','1'); storageOK = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){ storageOK=false; }
+(function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const k=h.get('k'), n=h.get('n'); if(k){ cfg.token = k; if(n){ if(mine && mine.name && mine.name !== n){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} } cfg.name = n; } saveJSON(LS.cfg, cfg); } })();
+
 /* ================= 啟動 ================= */
-$('#ver').textContent = APP_VER;
-$('#setName').value = cfg.name||'';
-if(SHEET_URL) $('#sheetLink').href = SHEET_URL; else $('#sheetLink').style.display='none';
-$('#apiWarn').innerHTML = API ? '' : `<div class="card" style="border:2px solid var(--stuck)"><h3>App 還沒接上 Google 試算表</h3><div class="sub">KK 照「google試算表版／部署步驟.md」做完，把網址給 Claude 填進 App 就能用。</div></div>`;
+$('#ver').textContent = APP_VER; $('#repoLabel').textContent = `${OWNER}/${DATA_REPO}`;
+$('#setName').value = cfg.name||''; $('#setToken').value = cfg.token||'';
 renderHeader(); renderWeek(); ensureMine(); renderMine(); renderAll(); renderLinkCard();
-showPage(cfg.name ? 'mine' : 'setup');
-if(cfg.name && !storageOK && !location.hash) toast('這個瀏覽器不會記住名字，請到「設定」複製專用連結');
+showPage((cfg.name && cfg.token) ? 'mine' : 'setup');
+if(cfg.name && cfg.token && !storageOK && !location.hash) toast('這個瀏覽器不會記住設定，請到「設定」複製專用連結');
 refreshAll(true);
-setInterval(() => { if(document.visibilityState==='visible') refreshAll(true); }, 60000);
+setInterval(() => { if(document.visibilityState==='visible' && !isDirty()) refreshAll(true); }, 60000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') refreshAll(true); });
 </script>
 </body>
