@@ -250,7 +250,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v3.1';
+const APP_VER = 'v3.2';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -294,7 +294,8 @@ let calMonth = null;
 function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', status:'', chase:'', pass:'無', assets:'無', assetsNote:'', opening:[], updatedAt:'' }; }
 function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
 function entry(ip){ ensureMine(); mine.weeks[day] ||= {}; mine.weeks[day][ip] ||= blankEntry(); return mine.weeks[day][ip]; }
-function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; return c; }
+function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; delete c._dirty; return c; }
+function touch(ip){ entry(ip)._dirty = new Date().toISOString(); }
 function persistDraft(){ saveJSON(LS.draft, mine); }
 const remoteMine = () => (cfg.name && everyone[cfg.name]) || null;
 
@@ -321,7 +322,7 @@ async function refreshAll(silent){
     if(cfg.name && everyone[cfg.name]){
       const r = everyone[cfg.name]; ensureMine();
       mine.ips = [...new Set([...(r.ips||[]), ...mine.ips])];
-      for(const dk of Object.keys(r.weeks||{})){ mine.weeks[dk] ||= {}; for(const ip of Object.keys(r.weeks[dk])){ const L = mine.weeks[dk][ip]; const R = r.weeks[dk][ip]; if(!L || (R.updatedAt||'') >= (L.updatedAt||'')) mine.weeks[dk][ip] = JSON.parse(JSON.stringify(R)); } }
+      for(const dk of Object.keys(r.weeks||{})){ mine.weeks[dk] ||= {}; for(const ip of Object.keys(r.weeks[dk])){ const L = mine.weeks[dk][ip]; const R = r.weeks[dk][ip]; const localNewer = L && L._dirty && L._dirty > (R.updatedAt||''); if(!L || (!localNewer && (R.updatedAt||'') >= (L.updatedAt||''))) mine.weeks[dk][ip] = JSON.parse(JSON.stringify(R)); } }
       persistDraft();
     }
     setSync('ok', '已同步 ' + nowStr());
@@ -335,9 +336,10 @@ async function uploadIp(ip){
   setSync('busy', '上傳中…');
   try{
     const e = entry(ip); e.updatedAt = new Date().toISOString(); persistDraft();
-    const j = await apiPost({ action:'save', editor:cfg.name, week:day, ip, entry:e, ips:mine.ips });
+    const send = JSON.parse(JSON.stringify(e)); delete send._dirty;
+    const j = await apiPost({ action:'save', editor:cfg.name, week:day, ip, entry:send, ips:mine.ips });
     if(j.skipped){ toast('伺服器上有更新的版本，先重新整理再改'); await refreshAll(true); return; }
-    e.updatedAt = j.updatedAt || e.updatedAt; persistDraft();
+    e.updatedAt = j.updatedAt || e.updatedAt; delete e._dirty; persistDraft();
     everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; const R = everyone[cfg.name]; R.ips = [...mine.ips]; R.weeks ||= {}; R.weeks[day] ||= {}; R.weeks[day][ip] = JSON.parse(JSON.stringify(e)); saveJSON(LS.cache, everyone);
     setSync('ok', '已上傳 ' + nowStr()); toast('已上傳，大家都看得到了');
   }catch(e){ setSync('err', '上傳失敗'); toast('上傳失敗：' + e.message); }
@@ -412,10 +414,10 @@ function renderMine(){
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
-      if(el.tagName==='SELECT'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); renderMine(); }; }
-      else if(el.tagName==='INPUT' && el.type==='date'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
-      else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
-      else el.onclick = () => { entry(ip)[el.dataset.f] = el.dataset.v; persistDraft(); renderMine(); };
+      if(el.tagName==='SELECT'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); renderMine(); }; }
+      else if(el.tagName==='INPUT' && el.type==='date'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); markDirty(card); }; }
+      else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); markDirty(card); }; }
+      else el.onclick = () => { entry(ip)[el.dataset.f] = el.dataset.v; touch(ip); persistDraft(); renderMine(); };
     });
     card.querySelectorAll('[data-op]').forEach(el => { const i=+el.dataset.op; if(el.dataset.rmop!==undefined){ el.onclick=()=>{ entry(ip).opening.splice(i,1); persistDraft(); renderMine(); }; } else { el.oninput=()=>{ entry(ip).opening[i][el.dataset.k]=el.value; persistDraft(); markDirty(card); }; } });
     card.querySelector('[data-save]').onclick = () => uploadIp(ip);
