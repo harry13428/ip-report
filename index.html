@@ -257,6 +257,8 @@ a{color:var(--accent)}
 <nav class="drawer" id="drawer">
   <h2>IP 週報</h2>
   <div class="me">現在是：<b id="drawerMe"></b></div>
+  <div class="sec">主管</div>
+  <div class="members" id="membersBoss"></div>
   <div class="sec">成員</div>
   <div class="members" id="members"></div>
   <button class="item" id="mSwitch"><span class="ic">👤</span>換人（回到選名字）</button>
@@ -339,7 +341,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.10';
+const APP_VER = 'v5.11';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -570,9 +572,12 @@ function renderDay(){ const w=dayLabel(day); if(mode==='day'){ $('#dayLabel').te
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; renderMembers(); }
 const ADMINS = ['KK'];   // 只有這些名字進來時，才看得到刪成員的按鈕
 function renderMembers(){ const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant')); const admin = ADMINS.includes(cfg.name);
-  $('#members').innerHTML = names.length ? names.map(n=>{ const e=everyone[n]; const ips=(e.ips||[]).length; const role=e.role||'組員'; return `<div class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span><span class="nm">${esc(n)}${ips?` <small>${ips} 個 IP</small>`:''}${n===cfg.name?' <small>（我）</small>':''}</span>${admin?`<button class="rolebtn" data-role="${esc(n)}" title="點一下切換主管／組員">${esc(role)}</button>`:`<small>${esc(role)}</small>`}${(admin && n!==cfg.name)?`<button class="rm" data-rmuser="${esc(n)}" title="刪掉這個成員">🗑</button>`:''}</div>`; }).join('') : '<div class="empty" style="padding:4px">還沒有人</div>';
-  $('#members').querySelectorAll('[data-rmuser]').forEach(b => b.onclick = () => removeUserUI(b.dataset.rmuser));
-  $('#members').querySelectorAll('[data-role]').forEach(b => b.onclick = () => toggleRole(b.dataset.role)); }
+  const row = n => { const e=everyone[n]; const ips=(e.ips||[]).length; const role=e.role||'組員'; return `<div class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span><span class="nm">${esc(n)}${ips?` <small>${ips} 個 IP</small>`:''}${n===cfg.name?' <small>（我）</small>':''}</span>${admin?`<button class="rolebtn" data-role="${esc(n)}" title="點一下切換主管／組員">${esc(role)}</button>`:''}${(admin && n!==cfg.name)?`<button class="rm" data-rmuser="${esc(n)}" title="刪掉這個成員">🗑</button>`:''}</div>`; };
+  const boss = names.filter(n=>(everyone[n].role||'組員')==='主管'), crew = names.filter(n=>(everyone[n].role||'組員')!=='主管');
+  $('#membersBoss').innerHTML = boss.length ? boss.map(row).join('') : '<div class="empty" style="padding:2px 4px;text-align:left">還沒有主管</div>';
+  $('#members').innerHTML = crew.length ? crew.map(row).join('') : '<div class="empty" style="padding:2px 4px;text-align:left">還沒有成員</div>';
+  $$('#membersBoss [data-rmuser], #members [data-rmuser]').forEach(b => b.onclick = () => removeUserUI(b.dataset.rmuser));
+  $$('#membersBoss [data-role], #members [data-role]').forEach(b => b.onclick = () => toggleRole(b.dataset.role)); }
 async function toggleRole(name){ const e = everyone[name]; if(!e) return; const nr = (e.role||'組員')==='主管' ? '組員' : '主管';
   try{ await apiPost({ action:'ips', editor:name, ips:e.ips||[], role:nr }); e.role = nr; saveJSON(LS.cache, everyone); toast(`${name} 改成${nr}`); }catch(err){ toast('沒改成功：'+err.message); }
   renderMembers(); renderWho(); }
