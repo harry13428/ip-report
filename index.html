@@ -177,6 +177,7 @@ a{color:var(--accent)}
   <div class="sec">其他</div>
   <button class="item" id="mExport"><span class="ic">💾</span>下載我的本機備份</button>
   <button class="item" id="mRefresh"><span class="ic">⟳</span>重新下載大家的回報</button>
+  <button class="item" id="mReload"><span class="ic">🆕</span>更新 App 到最新版</button>
   <div class="ver">IP 週報 <span id="ver"></span></div>
 </nav>
 
@@ -196,7 +197,9 @@ a{color:var(--accent)}
       <div class="brand">IP 週報<small id="whoami"></small></div>
       <div class="spacer"></div>
       <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">尚未連線</span></div>
+      <button class="iconbtn" id="btnReload" title="重新整理（抓最新版）">⟳</button>
     </div>
+    <div id="newVer" class="guide" style="display:none;background:var(--accent);color:#fff;cursor:pointer;text-align:center;font-weight:700">🆕 有新版本，點一下更新</div>
     <div class="datebar">
       <button class="nav" id="dayPrev" title="前一天">‹</button>
       <button class="pick" id="dayPick" title="打開日曆"><span>📅</span><span id="dayLabel"></span><small id="daySub"></small></button>
@@ -250,7 +253,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v3.2';
+const APP_VER = 'v3.3';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -514,6 +517,20 @@ $('#btnCopyMine').onclick = () => copyText(personText(cfg.name||'我', mine));
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('手動複製：', t); } }
 $('#whoGo').onclick = () => becomeUser($('#whoName').value);
 $('#whoName').addEventListener('keydown', e => { if(e.key==='Enter') $('#whoGo').click(); });
+
+/* ================= 版本更新（瀏覽器快取會留舊版） ================= */
+function hardReload(){ const u = location.pathname + '?v=' + Date.now() + location.hash; location.replace(u); }
+async function checkVersion(){
+  try{ const r = await fetch(location.pathname + '?_=' + Date.now(), { cache:'no-store' }); const t = await r.text();
+    const m = t.match(/APP_VER = '([^']+)'/); if(m && m[1] !== APP_VER){ const b=$('#newVer'); b.textContent = `🆕 有新版本 ${m[1]}，點一下更新（現在是 ${APP_VER}）`; b.style.display=''; } }
+  catch(e){}
+}
+$('#btnReload').onclick = hardReload;
+$('#newVer').onclick = hardReload;
+$('#mReload').onclick = () => { closeDrawer(); hardReload(); };
+setTimeout(checkVersion, 3000);
+setInterval(checkVersion, 5*60*1000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') checkVersion(); });
 
 /* ================= 啟動 ================= */
 $('#ver').textContent = APP_VER;
