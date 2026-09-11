@@ -23,24 +23,23 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-s
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 textarea{width:100%;min-height:64px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);line-height:1.5}
-input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input[type=text],input[type=password]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
 .app{max-width:760px;margin:0 auto;padding:0 12px 96px}
 header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .topbar{display:flex;align-items:center;gap:10px}
 .brand{font-weight:800;font-size:20px;letter-spacing:.5px}
-.brand small{font-weight:600;color:var(--accent);font-size:13px;margin-left:8px;background:var(--soft);padding:2px 9px;border-radius:999px}
+.brand small{font-weight:500;color:var(--muted);font-size:12px;margin-left:6px}
 .spacer{flex:1}
 .sync{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
 .dot{width:9px;height:9px;border-radius:50%;background:#9CA3AF;display:inline-block}
 .dot.ok{background:var(--ok)}.dot.busy{background:var(--wait);animation:pulse 1s infinite}.dot.err{background:var(--stuck)}
 @keyframes pulse{50%{opacity:.35}}
-.iconbtn{width:38px;height:38px;border-radius:10px;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;font-size:18px;flex:none}
-.datebar{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--card);border-radius:12px;padding:6px;box-shadow:var(--shadow)}
-.datebar button{height:38px;border-radius:9px;background:var(--soft);font-weight:700;color:var(--accent)}
-.datebar .nav{width:40px;font-size:18px}
-.datebar .pick{flex:1;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
-.datebar .pick small{font-weight:500;color:var(--muted);font-size:12px}
+.iconbtn{width:38px;height:38px;border-radius:10px;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;font-size:18px}
+.weekbar{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--card);border-radius:12px;padding:6px;box-shadow:var(--shadow)}
+.weekbar button{width:40px;height:36px;border-radius:9px;background:var(--soft);font-size:18px;font-weight:700;color:var(--accent)}
+.weekbar .wk{flex:1;text-align:center;font-weight:700}
+.weekbar .wk small{display:block;font-weight:500;color:var(--muted);font-size:12px}
 .guide{margin:10px 0 4px;padding:9px 12px;border-radius:10px;background:var(--soft);color:var(--accent);font-size:13px;line-height:1.5}
 .guide b{font-weight:800}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
@@ -85,16 +84,12 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .openrow .rm{justify-self:end}
 .sdot{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block;background:#9CA3AF}
 .sdot.ok{background:var(--ok)}.sdot.wait{background:var(--wait)}.sdot.stuck{background:var(--stuck)}.sdot.done{background:var(--done)}
-.person h3{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.person h3{display:flex;align-items:center;gap:8px}
 .person h3 .meta{font-weight:500;color:var(--muted);font-size:12px;margin-left:auto}
-.iprow{border-top:1px solid var(--line)}
+.iprow{padding:10px 0;border-top:1px solid var(--line)}
 .iprow:first-of-type{border-top:0}
-.iprow .t{display:flex;align-items:center;gap:8px;font-weight:700;padding:11px 0;cursor:pointer;user-select:none}
-.iprow .t .film{font-weight:500;color:var(--muted);font-size:13px}
-.iprow .t .st{font-size:12px;color:var(--muted);font-weight:500;margin-left:auto;white-space:nowrap}
-.iprow .t .arrow{color:var(--muted);font-size:12px}
-.iprow .d{display:none;padding:0 0 10px}
-.iprow.open .d{display:block}
+.iprow .t{display:flex;align-items:center;gap:8px;font-weight:700}
+.iprow .t .st{font-size:12px;color:var(--muted);font-weight:500}
 .kv{margin:4px 0 0 20px;font-size:14px;color:var(--ink)}
 .kv b{color:var(--muted);font-weight:600;margin-right:4px}
 .kv.help{color:var(--stuck)}
@@ -103,103 +98,37 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
 .filters button{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600}
 .filters button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
+.steps{counter-reset:s}
+.step{display:flex;gap:12px;margin:14px 0}
+.step .n{counter-increment:s;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.step .n::before{content:counter(s)}
+.step .c{flex:1}
+.step .c b{display:block;margin-bottom:4px}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px;word-break:break-all}
 .check{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:14px}
 .check input{margin-top:3px}
+details summary{cursor:pointer;font-weight:700;color:var(--accent)}
 .divider{height:1px;background:var(--line);margin:12px 0}
+.ipbtn{width:100%;text-align:left}
 a{color:var(--accent)}
 .ver{color:var(--muted);font-size:11px;text-align:center;margin-top:20px}
-
-/* 誰在用（登入畫面） */
-.who{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
-.who .box{max-width:480px;margin:6vh auto 0}
-.who h1{font-size:26px;margin:0 0 4px}
-.who p{color:var(--muted);margin:0 0 18px}
-.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px}
-.names button{padding:16px 10px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-weight:800;font-size:18px}
-.names button:active{background:var(--soft)}
-.who .or{color:var(--muted);font-size:13px;margin:8px 0}
-
-/* ☰ 側邊選單 */
-.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:none}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:min(84vw,320px);background:var(--card);z-index:45;transform:translateX(-105%);transition:transform .2s;padding:18px 14px;overflow:auto;box-shadow:4px 0 24px rgba(0,0,0,.2)}
-.drawer.on{transform:none}.drawer-bg.on{display:block}
-.drawer h2{margin:0 0 4px;font-size:18px}
-.drawer .me{color:var(--muted);font-size:13px;margin-bottom:14px}
-.drawer .item{display:flex;align-items:center;gap:10px;width:100%;padding:13px 10px;border-radius:10px;font-weight:600;text-align:left;text-decoration:none;color:var(--ink)}
-.drawer .item:hover{background:var(--soft)}
-.drawer .item .ic{width:24px;text-align:center}
-.drawer .sec{color:var(--muted);font-size:12px;margin:14px 10px 4px}
-
-/* 日曆 */
-.cal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:none}
-.cal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);background:var(--card);border-radius:16px;padding:14px;z-index:45;display:none;box-shadow:0 12px 40px rgba(0,0,0,.3)}
-.cal.on,.cal-bg.on{display:block}
-.cal .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cal .mh b{font-size:17px}
-.cal .mh button{width:36px;height:36px;border-radius:9px;background:var(--soft);color:var(--accent);font-weight:800;font-size:18px}
-.cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal .wd{text-align:center;font-size:12px;color:var(--muted);padding:4px 0}
-.cal .day{position:relative;aspect-ratio:1;border-radius:10px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center}
-.cal .day.other{color:var(--line)}
-.cal .day.today{outline:2px solid var(--accent);outline-offset:-2px}
-.cal .day.sel{background:var(--accent);color:#fff}
-.cal .day .m{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);display:flex;gap:2px}
-.cal .day .m i{width:5px;height:5px;border-radius:50%;background:var(--accent);display:block}
-.cal .day.sel .m i{background:#fff}
-.cal .foot{display:flex;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
-
-<!-- 誰在用 -->
-<div class="who" id="who" style="display:none">
-  <div class="box">
-    <h1>IP 週報</h1>
-    <p>你是誰？點一下自己的名字就進去。</p>
-    <div class="names" id="nameList"></div>
-    <div class="or">名單裡沒有你：</div>
-    <div class="row"><input type="text" id="whoName" placeholder="打你的名字" style="flex:1;min-width:140px"><button class="btn primary" id="whoGo">進去</button></div>
-  </div>
-</div>
-
-<!-- ☰ 選單 -->
-<div class="drawer-bg" id="drawerBg"></div>
-<nav class="drawer" id="drawer">
-  <h2>IP 週報</h2>
-  <div class="me">現在是：<b id="drawerMe"></b></div>
-  <button class="item" id="mSwitch"><span class="ic">👤</span>換人（回到選名字）</button>
-  <div class="sec">主管用</div>
-  <a class="item" id="mSheet" href="#" target="_blank" rel="noopener"><span class="ic">📊</span>打開 Google 試算表（原始資料）</a>
-  <button class="item" id="mCopyAll"><span class="ic">📋</span>複製這天全部人的回報文字</button>
-  <div class="sec">其他</div>
-  <button class="item" id="mExport"><span class="ic">💾</span>下載我的本機備份</button>
-  <button class="item" id="mRefresh"><span class="ic">⟳</span>重新下載大家的回報</button>
-  <div class="ver">IP 週報 <span id="ver"></span></div>
-</nav>
-
-<!-- 日曆 -->
-<div class="cal-bg" id="calBg"></div>
-<div class="cal" id="cal">
-  <div class="mh"><button id="calPrev">‹</button><b id="calTitle"></b><button id="calNext">›</button></div>
-  <div class="grid" id="calGrid"></div>
-  <div class="foot"><button class="btn" id="calToday" style="flex:1">今天</button><button class="btn primary" id="calClose" style="flex:1">關閉</button></div>
-  <div class="hint" style="font-size:12px;color:var(--muted);margin-top:8px">日期下面有點＝那天有人填過回報。</div>
-</div>
-
 <div class="app">
   <header>
     <div class="topbar">
-      <button class="iconbtn" id="btnMenu" title="選單">☰</button>
       <div class="brand">IP 週報<small id="whoami"></small></div>
       <div class="spacer"></div>
       <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">尚未連線</span></div>
+      <button class="iconbtn" id="btnRefresh" title="重新整理（重新下載大家的回報）">⟳</button>
     </div>
-    <div class="datebar">
-      <button class="nav" id="dayPrev" title="前一天">‹</button>
-      <button class="pick" id="dayPick" title="打開日曆"><span>📅</span><span id="dayLabel"></span><small id="daySub"></small></button>
-      <button class="nav" id="dayNext" title="後一天">›</button>
+    <div class="weekbar">
+      <button id="wkPrev" title="上一週">‹</button>
+      <div class="wk"><span id="wkLabel"></span><small id="wkSub"></small></div>
+      <button id="wkNext" title="下一週">›</button>
     </div>
     <div class="guide" id="guide"></div>
   </header>
@@ -225,7 +154,7 @@ a{color:var(--accent)}
       <label class="check"><input type="checkbox"> 需要主管幫忙的事有單獨寫，不是埋在段落裡</label>
       <label class="check"><input type="checkbox"> 開頭調整的片有寫「為什麼」</label>
       <div class="divider"></div>
-      <button class="btn block" id="btnCopyMine">📋 複製我這天的回報文字（貼群組）</button>
+      <button class="btn block" id="btnCopyMine">📋 複製我這週的回報文字（貼群組接龍）</button>
     </div>
   </section>
 
@@ -238,22 +167,61 @@ a{color:var(--accent)}
       <button data-f="wait">🟡 等回覆</button>
     </div>
     <div id="allList"></div>
+    <div class="card">
+      <button class="btn block" id="btnCopyAll">📋 複製全部人這週的回報文字</button>
+      <div class="hint" style="font-size:12px;color:var(--muted);margin-top:8px">主管可以直接複製整週彙整貼到群組或文件。</div>
+    </div>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section class="page" id="page-setup">
+    <div id="apiWarn"></div>
+    <div class="card steps">
+      <h3>第一次使用：填名字就好</h3>
+      <div class="step"><div class="n"></div><div class="c"><b>你的名字</b>
+        <input type="text" id="setName" placeholder="例：KK、琪琪、小貓">
+        <div class="hint">大家會用這個名字看到你的回報。之後不要改名，改了會變成另一個人。</div></div></div>
+      <div class="step"><div class="n"></div><div class="c"><b>按確定</b>
+        <div class="row"><button class="btn primary" id="btnTest">確定並測試連線</button><span id="testResult" class="badge" style="display:none"></span></div>
+        <div class="hint">出現「連線成功」就完成了，回到「我的回報」開始填。</div></div></div>
+    </div>
+
+    <div class="card" id="linkCard" style="display:none">
+      <h3>專用連結</h3>
+      <div class="sub">這個連結已經帶著你的名字，用它開 App 連名字都不用填。手機可以「加入主畫面」當 App。</div>
+      <div id="storeWarn" class="guide" style="display:none;background:var(--warn-bg);color:var(--stuck)">⚠️ 這個瀏覽器不會記住名字，請用專用連結開 App。</div>
+      <button class="btn primary block" id="btnCopyMyLink">📋 複製我的專用連結</button>
+      <div class="divider"></div>
+      <div class="sub">要給同事：打他的名字，複製給他的連結，傳給他。他點開就是他自己的。</div>
+      <div class="row"><input type="text" id="mateName" placeholder="同事名字（例：琪琪）" style="flex:1;min-width:140px"><button class="btn" id="btnCopyMateLink">複製給他的連結</button></div>
+    </div>
+
+    <div class="card">
+      <h3>資料放在哪</h3>
+      <div class="sub">所有人的回報都自動寫進 Google 試算表「IP週報」，主管可以直接開試算表看。</div>
+      <div class="row">
+        <a class="btn" id="sheetLink" href="#" target="_blank" rel="noopener">📊 打開 Google 試算表</a>
+        <button class="btn" id="btnExport">下載我的本機備份</button>
+      </div>
+    </div>
+    <div class="ver">IP 週報 <span id="ver"></span></div>
   </section>
 </div>
 
 <nav class="tabs">
   <button class="on" data-page="mine"><span class="ic">✍️</span>我的回報</button>
   <button data-page="all"><span class="ic">👥</span>全部人</button>
+  <button data-page="setup"><span class="ic">⚙️</span>設定</button>
 </nav>
 <div class="toast" id="toast"></div>
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v3.0';
-const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
+const APP_VER = 'v2.2';
+const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';            // ← Google Apps Script 網頁應用程式網址（…/exec），部署後填入
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';          // ← Google 試算表網址（給主管開）
 const API = new URLSearchParams(location.search).get('api') || API_URL;
-const LS = { cfg: 'ipreport_cfg_v3', draft: 'ipreport_draft_v3', cache: 'ipreport_cache_v3' };
+const LS = { cfg: 'ipreport_cfg_v2', draft: 'ipreport_draft_v2', cache: 'ipreport_cache_v2' };
 const STATUS = {
   ok:   { label:'🟢 順利',  cls:'ok'   },
   wait: { label:'🟡 等回覆', cls:'wait' },
@@ -262,7 +230,6 @@ const STATUS = {
 };
 const PASS_OPTS = ['無', '要催 IP 過片', '交給小野', '已跟小野講'];
 const ASSET_OPTS = ['無', '第1步 已跟 IP 要', '第2步 已跟小野說', '第3步 群組提醒過', '第4步 再跟小野說', '第5步 找主管／操盤'];
-const WD = ['日','一','二','三','四','五','六'];
 
 /* ================= 小工具 ================= */
 const $ = s => document.querySelector(s);
@@ -270,32 +237,37 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pad = n => String(n).padStart(2,'0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const parseYmd = k => { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); };
 const nowStr = () => { const d=new Date(); return `${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 function loadJSON(k, def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fmtTime(iso){ const d=new Date(iso); if(isNaN(d)) return ''; return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function shiftDay(key, n){ const x=parseYmd(key); x.setDate(x.getDate()+n); return ymd(x); }
-function dayLabel(key){ const d=parseYmd(key); const t=ymd(new Date());
-  const tag = key===t ? '今天' : key===shiftDay(t,-1) ? '昨天' : key===shiftDay(t,1) ? '明天' : '';
-  return { main:`${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`, sub: tag }; }
+
+/* 週：以「週五」為一週結束。週六、週日算下一週。 */
+function fridayOf(d){ const x=new Date(d); x.setHours(0,0,0,0); const wd=x.getDay();
+  let diff = (5 - wd + 7) % 7; if (wd===6) diff = 6; if (wd===0) diff = 5; x.setDate(x.getDate()+diff); return x; }
+function shiftWeek(key, n){ const [y,m,d]=key.split('-').map(Number); const x=new Date(y,m-1,d); x.setDate(x.getDate()+7*n); return ymd(x); }
+function weekLabel(key){ const [y,m,d]=key.split('-').map(Number); const f=new Date(y,m-1,d); const s=new Date(f); s.setDate(f.getDate()-6);
+  const cur = ymd(fridayOf(new Date()));
+  const tag = key===cur ? '本週' : (key===shiftWeek(cur,-1) ? '上週' : (key===shiftWeek(cur,1) ? '下週' : ''));
+  return { main:`${tag?tag+'・':''}${m}/${d}（五）回報`, sub:`${s.getMonth()+1}/${s.getDate()} – ${m}/${d}` }; }
 
 /* ================= 狀態 ================= */
 let cfg = loadJSON(LS.cfg, { name:'' });
-let day = ymd(new Date());
-let mine = loadJSON(LS.draft, null);        // 我的檔（含草稿）：{name, ips, weeks:{day:{ip:entry}}}
-let everyone = loadJSON(LS.cache, {});      // name -> {name, ips, weeks:{day:{ip:entry}}}（全部日期）
+let week = ymd(fridayOf(new Date()));
+let mine = loadJSON(LS.draft, null);        // 我的檔（含草稿）：{name, ips, weeks:{week:{ip:entry}}}
+let remoteMine = null;                      // 伺服器上我的版本（拿來還原、判斷未上傳）
+let everyone = loadJSON(LS.cache, {});      // week -> { name -> {name, ips, weeks:{week:{ip:entry}}} }
 let filter = 'all';
-let openIp = null; let openAll = {};
-let calMonth = null;
+let openIp = null;
+let storageOK = true; try{ localStorage.setItem('__t','1'); storageOK = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){ storageOK=false; }
 
 function blankEntry(){ return { film:'', status:'', pending:'', chase:'', news:'', pass:'無', assets:'無', assetsNote:'', help:'', opening:[], updatedAt:'' }; }
 function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
-function entry(ip){ ensureMine(); mine.weeks[day] ||= {}; mine.weeks[day][ip] ||= blankEntry(); return mine.weeks[day][ip]; }
+function entry(ip){ ensureMine(); mine.weeks[week] ||= {}; mine.weeks[week][ip] ||= blankEntry(); return mine.weeks[week][ip]; }
 function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; return c; }
 function persistDraft(){ saveJSON(LS.draft, mine); }
-const remoteMine = () => (cfg.name && everyone[cfg.name]) || null;
+function weekMap(){ return everyone[week] || {}; }
 
 /* ================= Google 試算表 API ================= */
 /* Google 的回應偶爾會變成一頁 HTML（不是 JSON），遇到就自動重試 */
@@ -308,79 +280,85 @@ async function fetchJSON(url, opt, tries=3){
   }
   throw new Error(last);
 }
-async function apiGet(params){ const u = API + '?' + new URLSearchParams({ ...params, _: Date.now() }); return fetchJSON(u, { method:'GET', redirect:'follow', cache:'no-store' }); }
-async function apiPost(body){ return fetchJSON(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) }); }
+async function apiGet(params){
+  if(!API) throw new Error('App 還沒接上試算表');
+  const u = API + '?' + new URLSearchParams({ ...params, _: Date.now() });
+  return fetchJSON(u, { method:'GET', redirect:'follow', cache:'no-store' });
+}
+async function apiPost(body){
+  if(!API) throw new Error('App 還沒接上試算表');
+  // text/plain 不會觸發 CORS 預檢，Apps Script 才收得到
+  return fetchJSON(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+}
 function setSync(state, text){ const d=$('#syncDot'); d.className='dot '+(state||''); $('#syncText').textContent=text; }
 
 async function refreshAll(silent){
+  if(!API){ setSync('err', '還沒接上試算表'); renderAll(); renderMine(); return; }
   setSync('busy', '下載中…');
   try{
-    const j = await apiGet({ action:'all' });          // 一次抓全部日期（資料很小）
-    everyone = j.editors || {}; saveJSON(LS.cache, everyone);
-    if(cfg.name && everyone[cfg.name]){
-      const r = everyone[cfg.name]; ensureMine();
-      mine.ips = [...new Set([...(r.ips||[]), ...mine.ips])];
-      for(const dk of Object.keys(r.weeks||{})){ mine.weeks[dk] ||= {}; for(const ip of Object.keys(r.weeks[dk])){ const L = mine.weeks[dk][ip]; const R = r.weeks[dk][ip]; if(!L || (R.updatedAt||'') >= (L.updatedAt||'')) mine.weeks[dk][ip] = JSON.parse(JSON.stringify(R)); } }
+    const j = await apiGet({ action:'all', week });
+    everyone[week] = j.editors || {}; saveJSON(LS.cache, everyone);
+    if(cfg.name && j.editors[cfg.name]){
+      remoteMine = j.editors[cfg.name];
+      ensureMine();
+      // 伺服器的 IP 清單與本機合併；每個 IP 這週的內容以 updatedAt 新者為準
+      mine.ips = [...new Set([...(remoteMine.ips||[]), ...mine.ips])];
+      const rw = remoteMine.weeks?.[week] || {}; mine.weeks[week] ||= {};
+      for(const ip of Object.keys(rw)){ const L = mine.weeks[week][ip]; if(!L || (rw[ip].updatedAt||'') >= (L.updatedAt||'')) mine.weeks[week][ip] = JSON.parse(JSON.stringify(rw[ip])); }
       persistDraft();
-    }
+    } else remoteMine = null;
     setSync('ok', '已同步 ' + nowStr());
     if(!silent) toast('已更新大家的回報');
   }catch(e){ setSync('err', '同步失敗'); if(!silent) toast('下載失敗：' + e.message); }
-  renderAll(); renderMine(); renderWho();
+  renderAll(); renderMine();
 }
 
 async function uploadIp(ip){
-  if(!cfg.name){ showWho(); return; }
+  if(!cfg.name){ toast('先到「設定」填名字'); showPage('setup'); return; }
   setSync('busy', '上傳中…');
   try{
     const e = entry(ip); e.updatedAt = new Date().toISOString(); persistDraft();
-    const j = await apiPost({ action:'save', editor:cfg.name, week:day, ip, entry:e, ips:mine.ips });
+    const j = await apiPost({ action:'save', editor:cfg.name, week, ip, entry:e, ips:mine.ips });
     if(j.skipped){ toast('伺服器上有更新的版本，先重新整理再改'); await refreshAll(true); return; }
     e.updatedAt = j.updatedAt || e.updatedAt; persistDraft();
-    everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; const R = everyone[cfg.name]; R.ips = [...mine.ips]; R.weeks ||= {}; R.weeks[day] ||= {}; R.weeks[day][ip] = JSON.parse(JSON.stringify(e)); saveJSON(LS.cache, everyone);
+    remoteMine ||= { name:cfg.name, ips:[], weeks:{} }; remoteMine.ips = [...mine.ips]; remoteMine.weeks[week] ||= {}; remoteMine.weeks[week][ip] = JSON.parse(JSON.stringify(e));
+    everyone[week] ||= {}; everyone[week][cfg.name] = JSON.parse(JSON.stringify(remoteMine)); saveJSON(LS.cache, everyone);
     setSync('ok', '已上傳 ' + nowStr()); toast('已上傳，大家都看得到了');
   }catch(e){ setSync('err', '上傳失敗'); toast('上傳失敗：' + e.message); }
   renderMine(); renderAll();
 }
-async function uploadIps(){ if(!cfg.name) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:mine.ips }); everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; everyone[cfg.name].ips=[...mine.ips]; }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
-
-/* ================= 誰在用 ================= */
-function showWho(){ $('#who').style.display=''; renderWho(); }
-function hideWho(){ $('#who').style.display='none'; }
-function renderWho(){ const names = Object.keys(everyone).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
-  $('#nameList').innerHTML = names.length ? names.map(n=>`<button data-n="${esc(n)}">${esc(n)}</button>`).join('') : '<div class="empty" style="grid-column:1/-1">還沒有人用過，在下面打名字。</div>';
-  $('#nameList').querySelectorAll('button').forEach(b => b.onclick = () => becomeUser(b.dataset.n)); }
-function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先打名字');
-  if(mine && mine.name && mine.name !== name){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} }
-  cfg = { name }; saveJSON(LS.cfg, cfg); ensureMine(); persistDraft(); hideWho(); renderHeader(); refreshAll(true); showPage('mine'); toast(`嗨 ${name}，開始填吧`); }
+async function uploadIps(){ if(!cfg.name || !API) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:mine.ips }); }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>上面選日期 → 點 IP 展開 → 填片名、卡在哪 → 最後選狀態 → 按「儲存並上傳」。',
-                            all:'<b>這頁：</b>大家這天的回報。點人底下的 IP 可以展開看那支片的狀況，紅字＝需要主管協助。' }[p]; window.scrollTo(0,0); }
-function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
-function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
+  const g = { mine:'<b>怎麼用：</b>① 點 IP 展開 → ② 填片名、卡在哪 → ③ 最後選狀態、按「儲存並上傳」。改到一半沒上傳會標「未上傳」。',
+              all:'<b>這頁：</b>大家這週的回報。紅色＝需要主管協助。上面可以切週、用篩選只看卡住的。',
+              setup:'<b>第一次：</b>填名字 → 按確定。之後不用再進來。' }[p];
+  $('#guide').innerHTML = g; window.scrollTo(0,0); }
+function renderWeek(){ const w=weekLabel(week); $('#wkLabel').textContent=w.main; $('#wkSub').textContent=w.sub; }
+function renderHeader(){ $('#whoami').textContent = cfg.name ? cfg.name : '（未設定名字）'; }
 
 /* ================= 畫面：我的回報 ================= */
 function renderMine(){
   ensureMine();
-  $('#mineSetupHint').innerHTML = !cfg.name ? `<div class="card" style="border:2px solid var(--accent)"><h3>還沒選名字</h3><button class="btn primary" onclick="showWho()">選我是誰</button></div>` : '';
+  const hint = $('#mineSetupHint');
+  hint.innerHTML = !API ? `<div class="card" style="border:2px solid var(--stuck)"><h3>App 還沒接上試算表</h3><div class="sub">請 KK 先照「google試算表版／部署步驟」把試算表接好。</div></div>`
+    : (!cfg.name ? `<div class="card" style="border:2px solid var(--accent)"><h3>還沒填名字</h3><div class="sub">先到「設定」填名字，回報才會算在你身上。</div><button class="btn primary" onclick="showPage('setup')">去設定</button></div>` : '');
   const chips = $('#ipChips');
   chips.innerHTML = mine.ips.length ? mine.ips.map(ip => `<span class="pill">${esc(ip)} <button title="移除這個 IP" data-rm="${esc(ip)}">✕</button></span>`).join('') : '<span class="empty" style="padding:6px">還沒有 IP，先在下面新增。</span>';
-  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已填過的回報會保留，只是不再顯示）`)){ mine.ips = mine.ips.filter(x=>x!==ip); persistDraft(); uploadIps(); renderMine(); } });
+  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已填過的舊週回報會保留，只是不再顯示）`)){ mine.ips = mine.ips.filter(x=>x!==ip); persistDraft(); uploadIps(); renderMine(); } });
 
   const wrap = $('#ipCards'); wrap.innerHTML = '';
-  const R = remoteMine();
   mine.ips.forEach(ip => {
     const e = entry(ip); const st = STATUS[e.status];
-    const remote = R?.weeks?.[day]?.[ip] || null;
+    const remote = remoteMine?.weeks?.[week]?.[ip] || null;
     const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remote || blankEntry()));
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}</span>
+      <div class="head" data-ip="${esc(ip)}"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}</span>
         ${dirtyIp?'<span class="badge dirty">未上傳</span>':(remote?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        <div class="field"><label>這天的影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
+        <div class="field"><label>這週的影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
         <div class="field"><label>1. 卡在哪<small>沒過的原因、卡在哪一步</small></label><textarea data-f="pending" placeholder="例：給 IP 看了 3 天沒回">${esc(e.pending)}</textarea></div>
         <div class="field"><label>2. 追過沒／對方回覆</label><textarea data-f="chase" placeholder="例：週三群組提醒一次，已跟小野講">${esc(e.chase)}</textarea></div>
         <div class="field"><label>3. IP 新動態<small>不喜歡什麼、想換什麼、喜歡的風格</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea></div>
@@ -391,14 +369,14 @@ function renderMine(){
         <div class="field"><label>7. 本週開頭調整<small>片名／改了什麼／為什麼</small></label>
           <div>${(e.opening||[]).map((o,i)=>openingRow(o,i)).join('')}</div>
           <button class="btn small" data-addop="1" style="margin-top:8px">＋ 加一支</button></div>
-        <div class="field"><label>這支 IP 這天的狀態<small>最後選</small></label>
+        <div class="field"><label>這支 IP 這週的狀態<small>最後選</small></label>
           <div class="seg status-seg">${Object.entries(STATUS).map(([k,v])=>`<button class="${e.status===k?'on '+v.cls:''}" data-f="status" data-v="${k}">${v.label}</button>`).join('')}</div></div>
         <div class="divider"></div>
         <div class="row">
           <button class="btn primary" data-save="1" style="flex:1">💾 儲存並上傳</button>
           <button class="btn" data-revert="1" ${dirtyIp?'':'disabled'}>↩ 還原成上次上傳</button>
         </div>
-        <div class="hint" style="font-size:12px;color:var(--muted);margin-top:6px">${remote?.updatedAt?('上次上傳：'+fmtTime(remote.updatedAt)):'這天還沒上傳過'}</div>
+        <div class="hint" style="font-size:12px;color:var(--muted);margin-top:6px">${remote?.updatedAt?('上次上傳：'+fmtTime(remote.updatedAt)):'還沒上傳過'}</div>
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
@@ -408,7 +386,7 @@ function renderMine(){
     card.querySelector('[data-addop]').onclick = () => { entry(ip).opening.push({film:'',change:'',why:''}); persistDraft(); renderMine(); };
     card.querySelectorAll('[data-op]').forEach(el => { const i=+el.dataset.op; if(el.dataset.rmop!==undefined){ el.onclick=()=>{ entry(ip).opening.splice(i,1); persistDraft(); renderMine(); }; } else { el.oninput=()=>{ entry(ip).opening[i][el.dataset.k]=el.value; persistDraft(); markDirty(card); }; } });
     card.querySelector('[data-save]').onclick = () => uploadIp(ip);
-    card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這天的內容還原成上次上傳的版本？')) return; mine.weeks[day][ip] = remote ? JSON.parse(JSON.stringify(remote)) : blankEntry(); persistDraft(); renderMine(); };
+    card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這週的內容還原成上次上傳的版本？')) return; mine.weeks[week][ip] = remote ? JSON.parse(JSON.stringify(remote)) : blankEntry(); persistDraft(); renderMine(); };
     wrap.appendChild(card);
   });
 }
@@ -417,7 +395,8 @@ function markDirty(card){ const b=card.querySelector('.head .badge'); if(b){ b.c
 
 /* ================= 畫面：全部人 ================= */
 function entryText(ip, e){
-  const L=[]; L.push(`${STATUS[e.status]?.label || '⚪ 未填狀態'}　${ip}${e.film?('｜'+e.film):''}`);
+  const L=[]; L.push(`${STATUS[e.status]?.label || '⚪ 未填狀態'}　${ip}`);
+  if(e.film) L.push(`　影片：${e.film}`);
   if(e.pending) L.push(`　卡在哪：${e.pending}`);
   if(e.chase) L.push(`　追過沒／回覆：${e.chase}`);
   if(e.news) L.push(`　IP 新動態：${e.news}`);
@@ -427,80 +406,70 @@ function entryText(ip, e){
   (e.opening||[]).filter(o=>o.film||o.change||o.why).forEach(o=>L.push(`　開頭調整：${o.film}｜${o.change}｜${o.why}`));
   return L.join('\n');
 }
-function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk);
-  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.map(ip=>entryText(ip, wk[ip])).join('\n'); }
-function entryDetail(e){ const has = e.pending||e.chase||e.news||(e.pass&&e.pass!=='無')||(e.assets&&e.assets!=='無')||e.assetsNote||e.help||(e.opening||[]).filter(o=>o.film||o.change||o.why).length; return `
-  ${e.pending?`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`:''}
-  ${e.chase?`<div class="kv"><b>追過沒</b>${esc(e.chase)}</div>`:''}
-  ${e.news?`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`:''}
-  ${(e.pass&&e.pass!=='無')?`<div class="kv"><b>過片處理</b>${esc(e.pass)}</div>`:''}
-  ${(e.assets&&e.assets!=='無')||e.assetsNote?`<div class="kv"><b>缺素材</b>${esc(e.assets!=='無'?e.assets:'')} ${esc(e.assetsNote)}</div>`:''}
-  ${e.help?`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`:''}
-  ${(e.opening||[]).filter(o=>o.film||o.change||o.why).map(o=>`<div class="kv"><b>開頭調整</b>${esc(o.film)}｜${esc(o.change)}｜${esc(o.why)}</div>`).join('')}
-  ${!has?'<div class="kv" style="color:var(--muted)">只填了狀態</div>':''}
-  ${e.updatedAt?`<div class="kv" style="color:var(--muted);font-size:12px">上傳 ${fmtTime(e.updatedAt)}</div>`:''}`; }
+function personText(name, file){ const wk=file?.weeks?.[week]||{}; const ips=(file?.ips||[]).filter(ip=>wk[ip]); const extra=Object.keys(wk).filter(ip=>!ips.includes(ip)); const all=[...ips,...extra];
+  if(!all.length) return `【${name}】這週還沒填`; return `【${name}】\n` + all.map(ip=>entryText(ip, wk[ip])).join('\n'); }
 function renderAll(){
-  const list = $('#allList');
-  const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
-  if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">還沒有任何人上傳回報。</div></div>`; return; }
-  const html = names.map(name => {
-    const wk = everyone[name].weeks?.[day] || {};
-    const ips = Object.keys(wk).filter(ip => { const e=wk[ip]; if(filter==='all') return true; if(filter==='stuck') return e.status==='stuck'; if(filter==='wait') return e.status==='wait'; if(filter==='help') return !!e.help; return true; });
+  const list = $('#allList'); const map = weekMap();
+  const names = Object.keys(map).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
+  if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">${API?'這週還沒有任何人上傳回報。':'App 還沒接上試算表。'}</div></div>`; return; }
+  list.innerHTML = names.map(name => {
+    const file = map[name]; const wk = file.weeks?.[week] || {};
+    let ips = [...new Set([...(file.ips||[]), ...Object.keys(wk)])];
+    ips = ips.filter(ip => { const e=wk[ip]; if(filter==='all') return true; if(!e) return false; if(filter==='stuck') return e.status==='stuck'; if(filter==='wait') return e.status==='wait'; if(filter==='help') return !!e.help; return true; });
     if(filter!=='all' && !ips.length) return '';
-    const rows = ips.length ? ips.map(ip => { const e = wk[ip]; const k = name+'|'+ip; const st = STATUS[e.status];
-      return `<div class="iprow ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st?st.cls:''}"></span><span>${esc(ip)}</span>${e.film?`<span class="film">${esc(e.film)}</span>`:''}<span class="st">${st?st.label:'未填狀態'}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}</div></div>`; }).join('')
-      : `<div class="empty" style="padding:8px">這天沒填</div>`;
-    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${ips.length?ips.length+' 個 IP':''}</span></h3>${rows}</div>`;
-  }).join('');
-  list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
-  list.querySelectorAll('.iprow .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
+    const rows = ips.length ? ips.map(ip => { const e = wk[ip]; if(!e) return `<div class="iprow"><div class="t"><span class="sdot"></span>${esc(ip)}<span class="st">這週還沒填</span></div></div>`;
+      return `<div class="iprow"><div class="t"><span class="sdot ${STATUS[e.status]?.cls||''}"></span>${esc(ip)}<span class="st">${STATUS[e.status]?.label||'未填狀態'}${e.updatedAt?('・'+fmtTime(e.updatedAt)):''}</span></div>
+        ${e.film?`<div class="kv"><b>影片</b>${esc(e.film)}</div>`:''}
+        ${e.pending?`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`:''}
+        ${e.chase?`<div class="kv"><b>追過沒</b>${esc(e.chase)}</div>`:''}
+        ${e.news?`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`:''}
+        ${(e.pass&&e.pass!=='無')?`<div class="kv"><b>過片處理</b>${esc(e.pass)}</div>`:''}
+        ${(e.assets&&e.assets!=='無')||e.assetsNote?`<div class="kv"><b>缺素材</b>${esc(e.assets!=='無'?e.assets:'')} ${esc(e.assetsNote)}</div>`:''}
+        ${e.help?`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`:''}
+        ${(e.opening||[]).filter(o=>o.film||o.change||o.why).map(o=>`<div class="kv"><b>開頭調整</b>${esc(o.film)}｜${esc(o.change)}｜${esc(o.why)}</div>`).join('')}
+      </div>`; }).join('') : `<div class="empty">這週還沒填</div>`;
+    const last = Object.values(wk).map(e=>e.updatedAt||'').sort().pop();
+    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${last?('更新 '+fmtTime(last)):''}</span></h3>${rows}</div>`;
+  }).join('') || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
 }
 
-/* ================= 日曆 ================= */
-function daysWithData(){ const m={}; for(const n of Object.keys(everyone)){ for(const dk of Object.keys(everyone[n].weeks||{})){ if(Object.keys(everyone[n].weeks[dk]).length) (m[dk] ||= new Set()).add(n); } } return m; }
-function renderCal(){ calMonth ||= day.slice(0,7); const [y,m]=calMonth.split('-').map(Number); $('#calTitle').textContent=`${y} 年 ${m} 月`;
-  const first=new Date(y,m-1,1); const start=new Date(first); start.setDate(1-first.getDay()); const marks=daysWithData(); const today=ymd(new Date());
-  let h = WD.map(w=>`<div class="wd">${w}</div>`).join('');
-  for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const k=ymd(d); const other=d.getMonth()!==m-1; const n=marks[k]?Math.min(marks[k].size,3):0;
-    h += `<button class="day ${other?'other':''} ${k===today?'today':''} ${k===day?'sel':''}" data-d="${k}">${d.getDate()}${n?`<span class="m">${'<i></i>'.repeat(n)}</span>`:''}</button>`; }
-  $('#calGrid').innerHTML=h; $('#calGrid').querySelectorAll('.day').forEach(b=>b.onclick=()=>{ setDay(b.dataset.d); closeCal(); }); }
-function openCal(){ calMonth=day.slice(0,7); renderCal(); $('#cal').classList.add('on'); $('#calBg').classList.add('on'); }
-function closeCal(){ $('#cal').classList.remove('on'); $('#calBg').classList.remove('on'); }
-function setDay(k){ day=k; openIp=null; renderDay(); renderMine(); renderAll(); }
-$('#calPrev').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m-2,1)).slice(0,7); renderCal(); };
-$('#calNext').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m,1)).slice(0,7); renderCal(); };
-$('#calToday').onclick=()=>{ setDay(ymd(new Date())); closeCal(); };
-$('#calClose').onclick=closeCal; $('#calBg').onclick=closeCal;
-$('#dayPick').onclick=openCal;
-$('#dayPrev').onclick=()=>setDay(shiftDay(day,-1));
-$('#dayNext').onclick=()=>setDay(shiftDay(day,1));
-
-/* ================= ☰ 選單 ================= */
-function openDrawer(){ $('#drawer').classList.add('on'); $('#drawerBg').classList.add('on'); }
-function closeDrawer(){ $('#drawer').classList.remove('on'); $('#drawerBg').classList.remove('on'); }
-$('#btnMenu').onclick=openDrawer; $('#drawerBg').onclick=closeDrawer;
-$('#mSwitch').onclick=()=>{ closeDrawer(); showWho(); };
-$('#mSheet').href = SHEET_URL;
-$('#mCopyAll').onclick=()=>{ closeDrawer(); const w=dayLabel(day); copyText(`📋 IP 週報 ${w.main}\n\n` + Object.keys(everyone).sort().map(n=>personText(n, everyone[n])).join('\n\n')); };
-$('#mExport').onclick=()=>{ closeDrawer(); const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
-$('#mRefresh').onclick=()=>{ closeDrawer(); refreshAll(false); };
+/* ================= 專用連結 ================= */
+function makeLink(name){ return location.origin + location.pathname + `#n=${encodeURIComponent(name)}`; }
+function renderLinkCard(){ $('#linkCard').style.display = cfg.name ? '' : 'none'; $('#storeWarn').style.display = storageOK ? 'none' : ''; }
+(function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const n=h.get('n'); if(n){ if(mine && mine.name && mine.name !== n){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} } cfg.name = n; saveJSON(LS.cfg, cfg); } })();
 
 /* ================= 事件 ================= */
 $$('.tabs button').forEach(b => b.onclick = () => showPage(b.dataset.page));
+$('#wkPrev').onclick = () => { week = shiftWeek(week,-1); renderWeek(); refreshAll(true); };
+$('#wkNext').onclick = () => { week = shiftWeek(week, 1); renderWeek(); refreshAll(true); };
+$('#btnRefresh').onclick = () => refreshAll(false);
 $('#btnAddIp').onclick = () => { const v = $('#newIpName').value.trim(); if(!v) return toast('先打 IP 名字'); ensureMine(); if(mine.ips.includes(v)) return toast('已經有這個 IP 了'); mine.ips.push(v); $('#newIpName').value=''; openIp=v; persistDraft(); uploadIps(); renderMine(); };
 $('#newIpName').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnAddIp').click(); });
 $$('.filters button').forEach(b => b.onclick = () => { filter=b.dataset.f; $$('.filters button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
 $('#btnCopyMine').onclick = () => copyText(personText(cfg.name||'我', mine));
+$('#btnCopyAll').onclick = () => { const w=weekLabel(week); const map=weekMap(); copyText(`📋 IP 週報 ${w.main}（${w.sub}）\n\n` + Object.keys(map).sort().map(n=>personText(n, map[n])).join('\n\n')); };
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('手動複製：', t); } }
-$('#whoGo').onclick = () => becomeUser($('#whoName').value);
-$('#whoName').addEventListener('keydown', e => { if(e.key==='Enter') $('#whoGo').click(); });
+$('#btnCopyMyLink').onclick = () => copyText(makeLink(cfg.name));
+$('#btnCopyMateLink').onclick = () => { const n=$('#mateName').value.trim(); if(!n) return toast('先打同事名字'); copyText(makeLink(n)); };
+$('#btnTest').onclick = async () => {
+  const name = $('#setName').value.trim(); const res=$('#testResult');
+  if(!name) return toast('先填名字');
+  if(mine && mine.name && mine.name !== name){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} }
+  cfg = { name }; saveJSON(LS.cfg, cfg); ensureMine(); persistDraft(); renderHeader(); renderLinkCard();
+  res.style.display='inline-block'; res.className='badge'; res.textContent='測試中…';
+  try{ await apiGet({ action:'ping' }); res.className='badge ok'; res.textContent='✓ 連線成功'; toast('設定完成，去「我的回報」開始填'); if(!location.hash) history.replaceState(null,'',makeLink(name)); await refreshAll(true); }
+  catch(e){ res.className='badge dirty'; res.textContent='✕ 連不上試算表：' + e.message; }
+};
+$('#btnExport').onclick = () => { const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
 
 /* ================= 啟動 ================= */
 $('#ver').textContent = APP_VER;
-(function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const n=h.get('n'); if(n){ cfg.name=n; saveJSON(LS.cfg, cfg); } })();
-renderHeader(); renderDay(); ensureMine(); renderMine(); renderAll();
-showPage('mine');
-if(!cfg.name) showWho();
+$('#setName').value = cfg.name||'';
+if(SHEET_URL) $('#sheetLink').href = SHEET_URL; else $('#sheetLink').style.display='none';
+$('#apiWarn').innerHTML = API ? '' : `<div class="card" style="border:2px solid var(--stuck)"><h3>App 還沒接上 Google 試算表</h3><div class="sub">KK 照「google試算表版／部署步驟.md」做完，把網址給 Claude 填進 App 就能用。</div></div>`;
+renderHeader(); renderWeek(); ensureMine(); renderMine(); renderAll(); renderLinkCard();
+showPage(cfg.name ? 'mine' : 'setup');
+if(cfg.name && !storageOK && !location.hash) toast('這個瀏覽器不會記住名字，請到「設定」複製專用連結');
 refreshAll(true);
 setInterval(() => { if(document.visibilityState==='visible') refreshAll(true); }, 60000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') refreshAll(true); });
