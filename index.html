@@ -99,8 +99,6 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .iprow .t .film{font-weight:500;color:var(--muted);font-size:13px}
 .iprow .t .st{font-size:12px;color:var(--muted);font-weight:500;margin-left:auto;white-space:nowrap}
 .iprow .t .arrow{color:var(--muted);font-size:12px}
-.iprow .d{display:none;padding:0 0 10px}
-.iprow.open .d{display:block}
 .kv{margin:4px 0 0 20px;font-size:14px;color:var(--ink)}
 .kv b{color:var(--muted);font-weight:600;margin-right:4px}
 .kv.help{color:var(--stuck)}
@@ -332,7 +330,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.4';
+const APP_VER = 'v5.5';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -542,7 +540,8 @@ function mondayOf(key){ const d=parseYmd(key); const wd=(d.getDay()+6)%7; d.setD
 function curRange(){ if(mode==='week'){ const m=mondayOf(day); return [m, shiftDay(m,6)]; } if(mode==='range'){ const a=rangeFrom||day, b=rangeTo||day; return a<=b?[a,b]:[b,a]; } return [day, day]; }
 function datesIn(){ const [a,b]=curRange(); const out=[]; let k=a; let guard=0; while(k<=b && guard++<400){ out.push(k); k=shiftDay(k,1); } return out; }
 function rangeLabel(){ const [a,b]=curRange(); if(a===b) return dayLabel(a).main; return `${fmtD(a)} – ${fmtD(b)}`; }
-function setMode(m){ mode=m; $$('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.m===m)); $('#rangeInputs').style.display = m==='range' ? '' : 'none';
+function setMode(m){ if(m==='week') day = ymd(new Date());   // 按「本週」一律跳回當週
+  mode=m; $$('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.m===m)); $('#rangeInputs').style.display = m==='range' ? '' : 'none';
   if(m==='range'){ if(!rangeFrom){ rangeFrom = mondayOf(day); rangeTo = day; } $('#rangeFrom').value=rangeFrom; $('#rangeTo').value=rangeTo; }
   renderDay(); renderAll(); }
 $$('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
