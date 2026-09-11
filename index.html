@@ -157,11 +157,13 @@ a{color:var(--accent)}
 .drawer .item:hover{background:var(--soft)}
 .drawer .item .ic{width:24px;text-align:center}
 .drawer .sec{color:var(--muted);font-size:12px;margin:14px 10px 4px}
-.members{display:flex;flex-wrap:wrap;gap:8px;padding:4px 10px 6px}
-.member{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;background:var(--soft);font-size:13px;font-weight:700}
-.member .av{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
-.member.me{outline:2px solid var(--accent)}
-.member small{font-weight:500;color:var(--muted)}
+.members{display:flex;flex-direction:column;gap:6px;padding:2px 6px 6px}
+.member{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--soft);font-size:14px;font-weight:700}
+.member .av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;flex:none}
+.member .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member small{font-weight:500;color:var(--muted);white-space:nowrap}
+.member.me .av{outline:2px solid #fff}
+.member .rm{color:var(--stuck);font-size:15px;padding:2px 6px}
 
 /* 日曆 */
 .cal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:none}
@@ -248,7 +250,7 @@ a{color:var(--accent)}
 <nav class="drawer" id="drawer">
   <h2>IP 週報</h2>
   <div class="me">現在是：<b id="drawerMe"></b></div>
-  <div class="sec">成員（誰用過這個 App）</div>
+  <div class="sec">成員</div>
   <div class="members" id="members"></div>
   <button class="item" id="mSwitch"><span class="ic">👤</span>換人（回到選名字）</button>
   <div class="sec">主管用</div>
@@ -330,7 +332,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.5';
+const APP_VER = 'v5.6';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -554,8 +556,18 @@ function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='pa
                             all:'<b>這頁：</b>上面可切「本週」或「自訂範圍」看整段期間。點人名 → 點 IP → 看每支片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); if(mode==='day'){ $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; } else { $('#dayLabel').textContent=rangeLabel(); $('#daySub').textContent = mode==='week' ? '本週' : '自訂'; } }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; renderMembers(); }
-function renderMembers(){ const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
-  $('#members').innerHTML = names.length ? names.map(n=>{ const e=everyone[n]; const ips=(e.ips||[]).length; return `<span class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span>${esc(n)}${ips?`<small>${ips} 個 IP</small>`:''}</span>`; }).join('') : '<div class="empty" style="padding:4px">還沒有人</div>'; }
+const ADMINS = ['KK'];   // 只有這些名字進來時，才看得到刪成員的按鈕
+function renderMembers(){ const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant')); const admin = ADMINS.includes(cfg.name);
+  $('#members').innerHTML = names.length ? names.map(n=>{ const e=everyone[n]; const ips=(e.ips||[]).length; return `<div class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span><span class="nm">${esc(n)}${n===cfg.name?' <small>（我）</small>':''}</span><small>${ips?ips+' 個 IP':''}</small>${(admin && n!==cfg.name)?`<button class="rm" data-rmuser="${esc(n)}" title="刪掉這個成員">🗑</button>`:''}</div>`; }).join('') : '<div class="empty" style="padding:4px">還沒有人</div>';
+  $('#members').querySelectorAll('[data-rmuser]').forEach(b => b.onclick = () => removeUserUI(b.dataset.rmuser)); }
+async function removeUserUI(name){
+  let n=0; for(const dk of Object.keys(everyone[name]?.weeks||{})) for(const ip of Object.keys(everyone[name].weeks[dk])) n += everyone[name].weeks[dk][ip].length;
+  if(!confirm(n ? `刪掉成員「${name}」？他填的 ${n} 支片會一起刪掉，找不回來。` : `刪掉成員「${name}」？`)) return;
+  setSync('busy', '刪除中…');
+  try{ await apiPost({ action:'deleteEditor', editor:name }); delete everyone[name]; saveJSON(LS.cache, everyone); setSync('ok', '已同步 ' + nowStr()); toast(`已刪掉 ${name}`); }
+  catch(e){ setSync('err', '刪除失敗'); toast('刪除失敗：' + e.message); }
+  renderMembers(); renderAll(); renderWho();
+}
 
 /* ================= 畫面：我的回報 ================= */
 function renderMine(){

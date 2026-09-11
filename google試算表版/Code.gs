@@ -48,6 +48,7 @@ function doPost(e){
     if(body.action === 'delete')   return out(deleteEntry(body));
     if(body.action === 'move')     return out(moveEntry(body));
     if(body.action === 'deleteIp') return out(deleteIp(body));
+    if(body.action === 'deleteEditor') return out(deleteEditor(body));
     return out({ ok:false, error:'unknown action' });
   } finally { lock.releaseLock(); }
 }
@@ -117,6 +118,16 @@ function deleteIp(b){
   let n = 0;
   if(b.withRows){ const rs = sheetOf('回報', R_HEAD); const vals = rs.getDataRange().getValues();
     for(let i=vals.length-1;i>=1;i--){ if(txt(vals[i][1])===String(b.editor) && txt(vals[i][2])===String(b.ip)){ rs.deleteRow(i+1); n++; } } }
+  return { ok:true, deleted:n };
+}
+
+/* 刪掉一個成員：剪輯師分頁那列＋他所有的回報列 */
+function deleteEditor(b){
+  const name = String(b.editor||''); if(!name) return { ok:false, error:'沒有名字' };
+  const es = sheetOf('剪輯師', E_HEAD); const ev = es.getDataRange().getValues();
+  for(let i=ev.length-1;i>=1;i--){ if(txt(ev[i][0])===name) es.deleteRow(i+1); }
+  const rs = sheetOf('回報', R_HEAD); const vals = rs.getDataRange().getValues(); let n=0;
+  for(let i=vals.length-1;i>=1;i--){ if(txt(vals[i][1])===name){ rs.deleteRow(i+1); n++; } }
   return { ok:true, deleted:n };
 }
 
