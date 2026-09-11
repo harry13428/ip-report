@@ -318,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.8';
+const APP_VER = 'v4.9';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -537,7 +537,7 @@ function renderMine(){
     const hasDraft = !!(e.film||e.stage||e.pending||e.news||e.help||(e.photos||[]).length||(e.links||[]).length);
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天已上傳 ${done.length} 支，到「全部人」看`:''}</small></span>
+      <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}</span>
         ${hasDraft?`<span class="badge dirty">${editing?'編輯中':'寫到一半'}</span>`:''}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
         <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:'新增一支影片'}</div>
