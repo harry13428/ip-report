@@ -204,18 +204,6 @@ a{color:var(--accent)}
 .grid2 .v.red{color:var(--stuck)}
 .helpbox{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warn-bg);color:var(--stuck);font-weight:700;font-size:15px}
 .vid .meta{color:var(--muted);font-size:12px;margin-top:8px}
-
-/* 截圖與連結 */
-.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.photos .ph{position:relative;width:84px;height:84px;border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--line);display:block}
-.photos .ph img{width:100%;height:100%;object-fit:cover;display:block}
-.photos .ph button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:22px;text-align:center}
-.photos .ph.add{display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;color:var(--accent);border:2px dashed var(--accent);background:var(--soft);cursor:pointer;line-height:1.3}
-.photos.view .ph{width:96px;height:96px}
-.links .lk{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-top:6px;background:var(--bg)}
-.links .lk a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.links .lk button{color:var(--muted)}
-.lkline{display:block;padding:6px 0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -320,12 +308,12 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.4';
+const APP_VER = 'v4.3';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
 const LS = { cfg: 'ipreport_cfg_v3', draft: 'ipreport_draft_v4', cache: 'ipreport_cache_v4' };
-const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等 IP 補資料', '其他'];          // 為什麼還在內審
+const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等小優看', '等 IP 補資料', '其他'];          // 為什麼還在內審
 const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
 const WD = ['日','一','二','三','四','五','六'];
 
@@ -376,7 +364,7 @@ let filter = 'all';
 let openIp = null; let openAll = {}; let openPerson = {};
 let calMonth = null;
 
-function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', photos:[], links:[], help:'', updatedAt:'' }; }
+function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', updatedAt:'' }; }
 function draft(ip){ drafts[day] ||= {}; drafts[day][ip] ||= blankEntry(); return drafts[day][ip]; }
 function persist(){ saveJSON(LS.draft, { ips: myIps, drafts }); }
 function touch(ip){ draft(ip)._dirty = new Date().toISOString(); }
@@ -433,24 +421,6 @@ async function uploadDraft(ip){
 }
 async function uploadIps(){ if(!cfg.name) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:myIps }); everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; everyone[cfg.name].ips=[...myIps]; }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
 
-/* 截圖：先縮到最長邊 1280、JPEG，再送後端存雲端硬碟 */
-function linkLabel(u){ try{ const h = new URL(u).hostname.replace(/^www\./,''); if(/instagram/.test(h)) return '📸 Instagram：' + u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60); if(/youtu/.test(h)) return '▶️ YouTube：' + u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60); if(/tiktok|douyin/.test(h)) return '🎵 ' + u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60); return '🔗 ' + u.replace(/^https?:\/\/(www\.)?/,'').slice(0,60); }catch(e){ return u; } }
-function shrink(file){ return new Promise((res, rej) => { const img = new Image(); const url = URL.createObjectURL(file);
-  img.onload = () => { const max = 1280; let w = img.naturalWidth, h = img.naturalHeight; const r = Math.min(1, max/Math.max(w,h)); w = Math.round(w*r); h = Math.round(h*r);
-    const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
-    res(c.toDataURL('image/jpeg', 0.82).split(',')[1]); };
-  img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('這個檔案不是圖片')); }; img.src = url; }); }
-async function uploadPhotos(ip, files){
-  if(!files.length) return; if(!API){ toast('還沒接上試算表'); return; }
-  setSync('busy', `上傳截圖 0/${files.length}…`);
-  let n = 0;
-  for(const f of files){
-    try{ const data = await shrink(f); const j = await apiPost({ action:'upload', data, mime:'image/jpeg', name:`${cfg.name}_${ip}_${Date.now()}.jpg` }); (draft(ip).photos ||= []).push(j.url); touch(ip); persist(); n++; setSync('busy', `上傳截圖 ${n}/${files.length}…`); renderMine(); }
-    catch(e){ toast('有一張沒上傳成功：' + e.message); }
-  }
-  setSync('ok', '已同步 ' + nowStr()); if(n) toast(`已上傳 ${n} 張截圖，記得按儲存`);
-}
-
 /* 把已上傳的某支片載入表單編輯 */
 function editEntry(dk, ip, film){
   const list = (mineRemote()?.weeks?.[dk]?.[ip]) || []; const src = list.find(x=>x.film===film); if(!src) return toast('找不到這支片');
@@ -488,7 +458,7 @@ function renderMine(){
   const wrap = $('#ipCards'); wrap.innerHTML = '';
   myIps.forEach(ip => {
     const e = draft(ip); const done = uploaded(ip); const editing = e._key !== undefined;
-    const hasDraft = !!(e.film||e.stage||e.pending||e.news||e.help||(e.photos||[]).length||(e.links||[]).length);
+    const hasDraft = !!(e.film||e.stage||e.pending||e.news||e.help);
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
       <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天 ${done.length} 支已上傳`:''}</small></span>
@@ -497,7 +467,6 @@ function renderMine(){
         ${done.length?`<div class="donelist">${done.map(x=>{ const st=stateOf(x); return `<div class="donerow"><span class="stage ${st.scls}">${st.stage}</span><span class="f">${esc(x.film||'（沒寫片名）')}</span>${st.detail?`<span class="det">${esc(st.detail)}</span>`:''}<button class="btn small" data-edit="${esc(x.film)}" style="margin-left:auto">編輯</button></div>`; }).join('')}</div>`:''}
         <div class="formtitle">${editing?`✏️ 正在編輯「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:(done.length?'＋ 再寫一支':'寫一支影片')}</div>
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
-        <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
         <div class="field"><label>影片狀態</label>
           <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button></div></div>
         ${e.stage==='內審'?`
@@ -513,16 +482,11 @@ function renderMine(){
         <div class="field"><label>有催 IP 過片了嗎？</label>
           <div class="seg"><button class="${e.chased==='有'?'on':''}" data-f="chased" data-v="有">有</button><button class="${e.chased==='還沒'?'on':''}" data-f="chased" data-v="還沒">還沒</button></div></div>
         <div class="field"><label>什麼時候外審的</label><input type="date" data-f="reviewDate" value="${esc(e.reviewDate||'')}"></div>
+        <div class="field"><label>預計上片日</label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
         `:''}
-        <details class="extra" ${(e.news||e.help||(e.photos||[]).length||(e.links||[]).length)?'open':''}>
-          <summary>額外（選填）：IP 新動態、IP 喜歡的風格、需要主管協助</summary>
-          <div class="field"><label>最近 IP 新動態<small>不喜歡什麼、想換什麼</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea>
-            <div class="photos">${(e.photos||[]).map((u,i)=>`<div class="ph"><a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="截圖"></a><button data-rmph="${i}" title="移除">✕</button></div>`).join('')}
-              <label class="ph add"><input type="file" accept="image/*" multiple data-photo="1" hidden><span>📷<br>上傳截圖</span></label></div>
-            <div class="hint">IP 說了什麼，直接截圖丟上來；可以一次選多張。</div></div>
-          <div class="field"><label>IP 喜歡的風格<small>貼 IG 或影片連結</small></label>
-            <div class="links">${(e.links||[]).map((u,i)=>`<div class="lk"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(linkLabel(u))}</a><button data-rmlk="${i}" title="移除">✕</button></div>`).join('')}</div>
-            <div class="row" style="margin-top:6px"><input type="text" data-newlink="1" placeholder="貼上連結，例如 https://www.instagram.com/…" style="flex:1;min-width:160px" inputmode="url"><button class="btn small" data-addlink="1">＋ 加連結</button></div></div>
+        <details class="extra" ${(e.news||e.help)?'open':''}>
+          <summary>額外（選填）：IP 新動態、需要主管協助</summary>
+          <div class="field"><label>最近 IP 新動態<small>不喜歡什麼、想換什麼、喜歡的風格</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea></div>
           <div class="field"><label>需要主管協助<small>會用紅色顯示給主管</small></label><textarea data-f="help" placeholder="自己處理不了、需要主管出面的事">${esc(e.help)}</textarea></div>
         </details>
         <div class="divider"></div>
@@ -539,12 +503,6 @@ function renderMine(){
       else el.onclick = () => { draft(ip)[el.dataset.f] = el.dataset.v; touch(ip); persist(); renderMine(); };
     });
     card.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editEntry(day, ip, b.dataset.edit));
-    const fi = card.querySelector('[data-photo]'); if(fi) fi.onchange = () => uploadPhotos(ip, [...fi.files]);
-    card.querySelectorAll('[data-rmph]').forEach(b => b.onclick = () => { draft(ip).photos.splice(+b.dataset.rmph,1); touch(ip); persist(); renderMine(); });
-    const addLk = () => { const inp = card.querySelector('[data-newlink]'); let u = (inp.value||'').trim(); if(!u) return toast('先貼連結'); if(!/^https?:\/\//i.test(u)) u = 'https://' + u; (draft(ip).links ||= []).push(u); inp.value=''; touch(ip); persist(); renderMine(); };
-    card.querySelector('[data-addlink]').onclick = addLk;
-    card.querySelector('[data-newlink]').addEventListener('keydown', ev => { if(ev.key==='Enter'){ ev.preventDefault(); addLk(); } });
-    card.querySelectorAll('[data-rmlk]').forEach(b => b.onclick = () => { draft(ip).links.splice(+b.dataset.rmlk,1); touch(ip); persist(); renderMine(); });
     const cancel = card.querySelector('[data-cancel]'); if(cancel) cancel.onclick = () => { drafts[day][ip] = blankEntry(); persist(); renderMine(); };
     card.querySelector('[data-save]').onclick = () => uploadDraft(ip);
     card.querySelector('[data-clear]').onclick = () => { if(!confirm('清空這張表單？（已上傳的不會動）')) return; drafts[day][ip] = blankEntry(); persist(); renderMine(); };
@@ -560,12 +518,9 @@ function entryText(ip, e){
     if(e.ipReply) L.push(`　給 IP 之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
     if(e.pending) L.push(`　卡在哪：${e.pending}`);
     if(e.chased) L.push(`　催過片：${e.chased}`);
-    if(e.reviewDate) L.push(`　外審日 ${fmtD(e.reviewDate)}`);
+    if(e.reviewDate||e.publishDate) L.push(`　外審日 ${fmtD(e.reviewDate)||'－'}｜預計上片 ${fmtD(e.publishDate)||'－'}`);
   }
-  if(e.publishDate) L.push(`　預計上片 ${fmtD(e.publishDate)}`);
   if(e.news) L.push(`　IP 新動態：${e.news}`);
-  (e.photos||[]).forEach(u=>L.push(`　截圖：${u}`));
-  (e.links||[]).forEach(u=>L.push(`　喜歡的風格：${u}`));
   if(e.help) L.push(`　⚠️ 需要主管協助：${e.help}`);
   return L.join('\n');
 }
@@ -580,11 +535,9 @@ function entryDetail(e){
     if(e.pending) row('卡在哪', esc(e.pending));
     row('催過片', e.chased ? esc(e.chased) : '<span style="color:var(--muted)">沒填</span>', e.chased==='還沒');
     if(e.reviewDate) row('外審日', esc(fmtD(e.reviewDate)));
+    if(e.publishDate) row('預計上片', esc(fmtD(e.publishDate)));
   }
-  if(e.publishDate) row('預計上片', esc(fmtD(e.publishDate)));
   if(e.news) row('IP 新動態', esc(e.news));
-  if((e.photos||[]).length) row('IP 截圖', `<div class="photos view">${e.photos.map(u=>`<a class="ph" href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="截圖"></a>`).join('')}</div>`);
-  if((e.links||[]).length) row('喜歡的風格', e.links.map(u=>`<a class="lkline" href="${esc(u)}" target="_blank" rel="noopener">${esc(linkLabel(u))}</a>`).join(''));
   let h = rows.length ? `<div class="grid2">${rows.join('')}</div>` : '<div class="meta">沒有其他內容</div>';
   if(e.help) h += `<div class="helpbox">⚠️ 需要主管協助：${esc(e.help)}</div>`;
   if(e.updatedAt) h += `<div class="meta">最後更新 ${fmtTime(e.updatedAt)}</div>`;

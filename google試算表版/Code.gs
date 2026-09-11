@@ -1,7 +1,7 @@
 /* IP 週報 App 的後端：綁在 Google 試算表上的 Apps Script
  * 部署方式見同資料夾「部署步驟.md」。App 用 GET 讀、POST 寫。
  */
-const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt','film','stage','reason','reasonNote','ipReply','replyNote','chased','reviewDate','publishDate'];
+const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt','film','stage','reason','reasonNote','ipReply','replyNote','chased','reviewDate','publishDate','photos','links'];
 const E_HEAD = ['editor','ips','updatedAt'];
 
 function sheetOf(name, head){
@@ -29,6 +29,7 @@ function doGet(e){
 function doPost(e){
   let body = {};
   try{ body = JSON.parse(e.postData.contents || '{}'); }catch(err){ return out({ ok:false, error:'bad json' }); }
+  if(body.action === 'upload') return out(uploadPhoto(body));   // 上傳截圖不用排隊
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try{
@@ -53,6 +54,7 @@ function getAll(week){
     (wk[o.ip] = wk[o.ip] || []).push({ film:String(o.film||''), stage:String(o.stage||''), reason:String(o.reason||''), reasonNote:String(o.reasonNote||''),
       ipReply:String(o.ipReply||''), replyNote:String(o.replyNote||''), pending:String(o.pending||''), chased:String(o.chased||''),
       reviewDate:txtDay(o.reviewDate), publishDate:txtDay(o.publishDate), news:String(o.news||''), help:String(o.help||''),
+      photos:safeJson(o.photos, []), links:safeJson(o.links, []),
       status:String(o.status||''), updatedAt:String(o.updatedAt||'') });   // 一個 IP 一天可以有很多支片
   }
   return { ok:true, week, editors };
@@ -67,7 +69,7 @@ function saveEntry(b){
   let rowIdx = -1;
   for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===key[0] && txt(vals[i][1])===key[1] && txt(vals[i][2])===key[2] && txt(vals[i][13])===keyFilm){ rowIdx=i+1; break; } }
   const now = new Date().toISOString();
-  const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now, e.film||'', e.stage||'', e.reason||'', e.reasonNote||'', e.ipReply||'', e.replyNote||'', e.chased||'', e.reviewDate||'', e.publishDate||''];
+  const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now, e.film||'', e.stage||'', e.reason||'', e.reasonNote||'', e.ipReply||'', e.replyNote||'', e.chased||'', e.reviewDate||'', e.publishDate||'', JSON.stringify(e.photos||[]), JSON.stringify(e.links||[])];
   if(rowIdx>0){
     const old = txt(vals[rowIdx-1][12]);
     if(e.updatedAt && old && old > e.updatedAt && b.force!==true) return { ok:true, skipped:true, reason:'server newer', updatedAt: old };
@@ -82,6 +84,18 @@ function setIps(editor, ips){
   const vals = es.getDataRange().getValues(); const now = new Date().toISOString();
   for(let i=1;i<vals.length;i++){ if(txt(vals[i][0])===String(editor)){ es.getRange(i+1,1,1,3).setValues([[editor, JSON.stringify(ips||[]), now]]); return { ok:true }; } }
   es.appendRow([editor, JSON.stringify(ips||[]), now]); return { ok:true };
+}
+
+/* 截圖：存到雲端硬碟資料夾「IP週報照片」，開「知道連結的人可檢視」，回傳可直接當 <img> 的網址 */
+function photoFolder(){ const it = DriveApp.getFoldersByName('IP週報照片'); return it.hasNext() ? it.next() : DriveApp.createFolder('IP週報照片'); }
+function uploadPhoto(b){
+  if(!b.data) return { ok:false, error:'沒有圖片' };
+  const bytes = Utilities.base64Decode(b.data);
+  if(bytes.length > 8*1024*1024) return { ok:false, error:'圖片太大（超過 8MB）' };
+  const blob = Utilities.newBlob(bytes, b.mime || 'image/jpeg', b.name || ('截圖_' + new Date().toISOString().replace(/[:.]/g,'-') + '.jpg'));
+  const f = photoFolder().createFile(blob);
+  f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { ok:true, id:f.getId(), url:'https://lh3.googleusercontent.com/d/' + f.getId(), link:f.getUrl() };
 }
 
 function safeJson(v, def){ try{ return v ? JSON.parse(v) : def; }catch(e){ return def; } }
