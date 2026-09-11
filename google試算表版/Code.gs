@@ -5,7 +5,7 @@
 function auth(){ return photoFolder().getName() + ' / ' + SpreadsheetApp.getActive().getName(); }
 
 const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt','film','stage','reason','reasonNote','ipReply','replyNote','chased','reviewDate','publishDate','photos','links'];
-const E_HEAD = ['editor','ips','updatedAt'];
+const E_HEAD = ['editor','ips','updatedAt','role'];   // role＝主管／組員
 
 function sheetOf(name, head){
   const ss = SpreadsheetApp.getActive();
@@ -44,7 +44,7 @@ function doPost(e){
   try{
     CacheService.getScriptCache().remove('all');   // 任何寫入都讓讀取快取失效
     if(body.action === 'save')     return out(saveEntry(body));
-    if(body.action === 'ips')      return out(setIps(body.editor, body.ips));
+    if(body.action === 'ips')      return out(setIps(body.editor, body.ips, body.role));
     if(body.action === 'delete')   return out(deleteEntry(body));
     if(body.action === 'move')     return out(moveEntry(body));
     if(body.action === 'deleteIp') return out(deleteIp(body));
@@ -58,8 +58,8 @@ function getAll(week){
   const rs = sheetOf('回報', R_HEAD), es = sheetOf('剪輯師', E_HEAD);
   const editors = {};
   const ev = es.getDataRange().getValues();
-  for(let i=1;i<ev.length;i++){ const [editor, ips, updatedAt] = ev[i]; if(!editor) continue;
-    editors[editor] = { name:txt(editor), ips: safeJson(ips, []), updatedAt: txt(updatedAt), weeks:{} }; }
+  for(let i=1;i<ev.length;i++){ const [editor, ips, updatedAt, role] = ev[i]; if(!editor) continue;
+    editors[editor] = { name:txt(editor), ips: safeJson(ips, []), updatedAt: txt(updatedAt), role: txt(role)||'組員', weeks:{} }; }
   const rv = rs.getDataRange().getValues();
   for(let i=1;i<rv.length;i++){ const row = rv[i]; const o = {}; R_HEAD.forEach((k,j)=>o[k]=txt(row[j])); o.week = txtDay(row[0]);
     if(!o.editor || !o.ip) continue; if(week && o.week!==week) continue;
@@ -131,11 +131,11 @@ function deleteEditor(b){
   return { ok:true, deleted:n };
 }
 
-function setIps(editor, ips){
+function setIps(editor, ips, role){
   const es = sheetOf('剪輯師', E_HEAD);
   const vals = es.getDataRange().getValues(); const now = new Date().toISOString();
-  for(let i=1;i<vals.length;i++){ if(txt(vals[i][0])===String(editor)){ es.getRange(i+1,1,1,3).setValues([[editor, JSON.stringify(ips||[]), now]]); return { ok:true }; } }
-  es.appendRow([editor, JSON.stringify(ips||[]), now]); return { ok:true };
+  for(let i=1;i<vals.length;i++){ if(txt(vals[i][0])===String(editor)){ const r = role || txt(vals[i][3]) || '組員'; es.getRange(i+1,1,1,4).setValues([[editor, JSON.stringify(ips||[]), now, r]]); return { ok:true }; } }
+  es.appendRow([editor, JSON.stringify(ips||[]), now, role || '組員']); return { ok:true };
 }
 
 /* 截圖：存到雲端硬碟資料夾「IP週報照片」，開「知道連結的人可檢視」，回傳可直接當 <img> 的網址 */
