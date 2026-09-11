@@ -341,7 +341,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.11';
+const APP_VER = 'v5.12';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -443,7 +443,7 @@ function isTyping(){ const a = document.activeElement; return !!(a && /INPUT|TEX
 async function uploadDraft(ip){
   if(!cfg.name){ showWho(); return; }
   const e = draft(ip); const owner = e._owner || cfg.name;
-  if(!e.film.trim()) { toast('先填這支影片的名字'); return; }
+  if(!e.film.trim()) { toast('先填這部影片的名字'); return; }
   if(!e.stage) { toast('先選內審或外審'); return; }
   setSync('busy', '上傳中…');
   try{
@@ -454,7 +454,7 @@ async function uploadDraft(ip){
     const idx = list.findIndex(x => x.film === (e._key ?? e.film)); if(idx>=0) list[idx] = send; else list.push(send);
     saveJSON(LS.cache, everyone);
     drafts[day][ip] = blankEntry(); persist();
-    setSync('ok', '已上傳 ' + nowStr()); toast(idx>=0 ? '已更新這支片' : '已上傳，可以寫下一支');
+    setSync('ok', '已上傳 ' + nowStr()); toast(idx>=0 ? '已更新這部片' : '已上傳，可以寫下一部');
   }catch(err){ setSync('err', '上傳失敗'); toast('上傳失敗：' + err.message); }
   renderMine(); renderAll();
 }
@@ -479,7 +479,7 @@ async function uploadPhotos(ip, files){
 
 /* 把已上傳的某支片載入表單編輯（可以是別人的：_owner 記誰的） */
 function editEntry(owner, dk, ip, film){
-  const list = (everyone[owner]?.weeks?.[dk]?.[ip]) || []; const src = list.find(x=>x.film===film); if(!src) return toast('找不到這支片');
+  const list = (everyone[owner]?.weeks?.[dk]?.[ip]) || []; const src = list.find(x=>x.film===film); if(!src) return toast('找不到這部片');
   day = dk; if(mode!=='day') setMode('day'); renderDay();
   if(owner===cfg.name && !myIps.includes(ip)) myIps.push(ip);
   drafts[day] ||= {}; drafts[day][ip] = Object.assign(clone(src), { _key: film, _owner: owner, _dirty: new Date().toISOString() }); persist();
@@ -525,11 +525,11 @@ async function deleteEntryUI(owner, dk, ip, film){
 /* 刪掉自己的一個 IP（打錯名字用） */
 async function removeIpUI(ip){
   const W = everyone[cfg.name]?.weeks || {}; let n = 0; for(const dk of Object.keys(W)) n += (W[dk][ip]||[]).length;
-  if(!confirm(n ? `刪掉 IP「${ip}」？它底下有 ${n} 支已上傳的片，會一起刪掉。` : `刪掉 IP「${ip}」？`)) return;
+  if(!confirm(n ? `刪掉 IP「${ip}」？它底下有 ${n} 部已上傳的片，會一起刪掉。` : `刪掉 IP「${ip}」？`)) return;
   myIps = myIps.filter(x=>x!==ip); if(drafts[day]) delete drafts[day][ip]; persist(); renderMine();
   try{ await apiPost({ action:'deleteIp', editor:cfg.name, ip, withRows:true });
     if(everyone[cfg.name]){ everyone[cfg.name].ips = myIps.slice(); for(const dk of Object.keys(W)) delete W[dk][ip]; saveJSON(LS.cache, everyone); }
-    toast(n ? `已刪掉 ${ip} 和 ${n} 支片` : `已刪掉 ${ip}`);
+    toast(n ? `已刪掉 ${ip} 和 ${n} 部片` : `已刪掉 ${ip}`);
   }catch(e){ toast('刪除沒成功：' + e.message); }
   renderMine(); renderAll();
 }
@@ -566,8 +566,8 @@ $('#rangeTo').onchange = () => { rangeTo = $('#rangeTo').value; renderDay(); ren
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選狀態 → 回答問題 → 儲存並上傳。上傳後表單清空可以寫下一支；要看或改已上傳的片，去「全部人」。',
-                            all:'<b>這頁：</b>上面可切「本週」或「自訂範圍」看整段期間。點人名 → 點 IP → 看每支片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
+  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選狀態 → 回答問題 → 儲存並上傳。上傳後表單清空可以寫下一部；要看或改已上傳的片，去「全部人」。',
+                            all:'<b>這頁：</b>上面可切「本週」或「自訂範圍」看整段期間。點人名 → 點 IP → 看每部片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); if(mode==='day'){ $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; } else { $('#dayLabel').textContent=rangeLabel(); $('#daySub').textContent = mode==='week' ? '本週' : '自訂'; } }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; renderMembers(); }
 const ADMINS = ['KK'];   // 只有這些名字進來時，才看得到刪成員的按鈕
@@ -583,7 +583,7 @@ async function toggleRole(name){ const e = everyone[name]; if(!e) return; const 
   renderMembers(); renderWho(); }
 async function removeUserUI(name){
   let n=0; for(const dk of Object.keys(everyone[name]?.weeks||{})) for(const ip of Object.keys(everyone[name].weeks[dk])) n += everyone[name].weeks[dk][ip].length;
-  if(!confirm(n ? `刪掉成員「${name}」？他填的 ${n} 支片會一起刪掉，找不回來。` : `刪掉成員「${name}」？`)) return;
+  if(!confirm(n ? `刪掉成員「${name}」？他填的 ${n} 部片會一起刪掉，找不回來。` : `刪掉成員「${name}」？`)) return;
   setSync('busy', '刪除中…');
   try{ await apiPost({ action:'deleteEditor', editor:name }); delete everyone[name]; saveJSON(LS.cache, everyone); setSync('ok', '已同步 ' + nowStr()); toast(`已刪掉 ${name}`); }
   catch(e){ setSync('err', '刪除失敗'); toast('刪除失敗：' + e.message); }
@@ -606,9 +606,9 @@ function renderMine(){
       <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}</span>
         ${hasDraft?`<span class="badge dirty">${editing?'編輯中':'寫到一半'}</span>`:''}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:'新增一支影片'}</div>
-        <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
-        <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(dayKey(e.publishDate))}"></div>
+        <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:'新增一部影片'}</div>
+        <div class="field"><label>這部影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
+        <div class="field"><label>預計上片日<small>這部片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(dayKey(e.publishDate))}"></div>
         <div class="field"><label>影片狀態</label>
           <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button><button class="${e.stage==='已完成'?'on done':''}" data-f="stage" data-v="已完成">3. 已完成</button></div></div>
         ${e.stage==='內審'?`
@@ -620,7 +620,7 @@ function renderMine(){
         <div class="field"><label>外審之後的狀態</label>
           <select data-f="ipReply">${['',...REPLY_OPTS].map(o=>`<option value="${esc(o)}" ${e.ipReply===o?'selected':''}>${o||'請選擇'}</option>`).join('')}</select>
           ${e.ipReply==='其他'?`<input type="text" data-f="replyNote" style="margin-top:8px" placeholder="自己打：什麼狀況" value="${esc(e.replyNote||'')}">`:''}</div>
-        <div class="field"><label>這支片卡在哪<small>沒有可留白</small></label><textarea data-f="pending" placeholder="例：IP 說要改音樂，還沒說要換哪首">${esc(e.pending)}</textarea></div>
+        <div class="field"><label>這部片卡在哪<small>沒有可留白</small></label><textarea data-f="pending" placeholder="例：IP 說要改音樂，還沒說要換哪首">${esc(e.pending)}</textarea></div>
         <div class="field"><label>有催 IP 過片了嗎？</label>
           <div class="seg"><button class="${e.chased==='有'?'on':''}" data-f="chased" data-v="有">有</button><button class="${e.chased==='還沒'?'on':''}" data-f="chased" data-v="還沒">還沒</button></div></div>
         <div class="field"><label>什麼時候外審的</label><input type="date" data-f="reviewDate" value="${esc(dayKey(e.reviewDate))}"></div>
@@ -717,7 +717,7 @@ function renderAll(){
     const ips = Object.keys(byIp); const n = items.length;
     const rows = ips.length ? ips.map(ip => {
       const vids = byIp[ip]; const ik = name+'|'+ip; const io = !!openIpAll[ik];
-      return `<div class="iprow ${io?'open':''}" data-ik="${esc(ik)}"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 支</span><span class="caret">${io?'▴':'▾'}</span></div><div class="ipbody">` + vids.map(({dk,e}) => { const k = name+'|'+dk+'|'+ip+'|'+e.film; const st = stateOf(e);
+      return `<div class="iprow ${io?'open':''}" data-ik="${esc(ik)}"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 部</span><span class="caret">${io?'▴':'▾'}</span></div><div class="ipbody">` + vids.map(({dk,e}) => { const k = name+'|'+dk+'|'+ip+'|'+e.film; const st = stateOf(e);
         const chips = [];
         if(multi) chips.push(`<span class="det">📅 ${esc(fmtD(dk))}</span>`);
         if(st.detail && !e.help) chips.push(`<span class="det">${esc(st.detail)}</span>`);
@@ -727,7 +727,7 @@ function renderAll(){
         return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="stage ${st.scls}">${st.stage}</span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div>${chips.length?`<div class="sub">${chips.join('')}</div>`:''}<div class="d">${entryDetail(e)}<div class="row" style="margin-top:10px"><button class="btn small" data-act="edit" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">✏️ 編輯</button><button class="btn small" data-act="move" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">↔ 移到別的 IP</button><button class="btn small danger" data-act="del" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">🗑 刪除</button></div></div></div>`; }).join('') + `</div></div>`; }).join('')
       : `<div class="empty" style="padding:8px">${multi?'這段期間沒填':'這天沒填'}</div>`;
     const po = openPerson[name] !== undefined ? openPerson[name] : (name===cfg.name);
-    return `<div class="card person ${po?'open':''}" data-p="${esc(name)}"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':(multi?'這段期間沒填':'這天沒填')}</span><span class="caret">${po?'▴':'▾'}</span></h3><div class="pbody">${rows}</div></div>`;
+    return `<div class="card person ${po?'open':''}" data-p="${esc(name)}"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 部':(multi?'這段期間沒填':'這天沒填')}</span><span class="caret">${po?'▴':'▾'}</span></h3><div class="pbody">${rows}</div></div>`;
   }).join('');
   list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
   list.querySelectorAll('.iprow .ipname').forEach(h => h.onclick = () => { const k=h.parentElement.dataset.ik; openIpAll[k]=!openIpAll[k]; renderAll(); });
