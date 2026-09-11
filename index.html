@@ -318,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.9';
+const APP_VER = 'v4.10';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -409,8 +409,10 @@ async function refreshAll(silent){
     setSync('ok', '已同步 ' + nowStr());
     if(!silent) toast('已更新大家的回報');
   }catch(e){ setSync('err', '同步失敗'); if(!silent) toast('下載失敗：' + e.message); }
-  renderAll(); renderMine(); renderWho();
+  renderAll(); renderWho();
+  if(!isTyping()) renderMine();   // 正在打字或選日期時不要重畫，不然輸入會被打斷
 }
+function isTyping(){ const a = document.activeElement; return !!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && $('#page-mine').contains(a)); }
 
 /* 上傳草稿：成功後草稿清空（保留 IP），這支片進到「已上傳」清單 */
 async function uploadDraft(ip){
