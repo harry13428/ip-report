@@ -336,7 +336,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.7';
+const APP_VER = 'v5.8';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -566,7 +566,7 @@ function renderDay(){ const w=dayLabel(day); if(mode==='day'){ $('#dayLabel').te
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; renderMembers(); }
 const ADMINS = ['KK'];   // 只有這些名字進來時，才看得到刪成員的按鈕
 function renderMembers(){ const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant')); const admin = ADMINS.includes(cfg.name);
-  $('#members').innerHTML = names.length ? names.map(n=>{ const e=everyone[n]; const ips=(e.ips||[]).length; const role=e.role||'組員'; return `<div class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span><span class="nm">${esc(n)}${n===cfg.name?' <small>（我）</small>':''}</span>${admin?`<button class="rolebtn" data-role="${esc(n)}" title="點一下切換主管／組員">${esc(role)}</button>`:`<small>${esc(role)}</small>`}<small>${ips?ips+' 個 IP':''}</small>${(admin && n!==cfg.name)?`<button class="rm" data-rmuser="${esc(n)}" title="刪掉這個成員">🗑</button>`:''}</div>`; }).join('') : '<div class="empty" style="padding:4px">還沒有人</div>';
+  $('#members').innerHTML = names.length ? names.map(n=>{ const e=everyone[n]; const ips=(e.ips||[]).length; const role=e.role||'組員'; return `<div class="member ${n===cfg.name?'me':''}"><span class="av">${esc(n.slice(0,1))}</span><span class="nm">${esc(n)}${ips?` <small>${ips} 個 IP</small>`:''}${n===cfg.name?' <small>（我）</small>':''}</span>${admin?`<button class="rolebtn" data-role="${esc(n)}" title="點一下切換主管／組員">${esc(role)}</button>`:`<small>${esc(role)}</small>`}${(admin && n!==cfg.name)?`<button class="rm" data-rmuser="${esc(n)}" title="刪掉這個成員">🗑</button>`:''}</div>`; }).join('') : '<div class="empty" style="padding:4px">還沒有人</div>';
   $('#members').querySelectorAll('[data-rmuser]').forEach(b => b.onclick = () => removeUserUI(b.dataset.rmuser));
   $('#members').querySelectorAll('[data-role]').forEach(b => b.onclick = () => toggleRole(b.dataset.role)); }
 async function toggleRole(name){ const e = everyone[name]; if(!e) return; const nr = (e.role||'組員')==='主管' ? '組員' : '主管';
