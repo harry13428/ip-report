@@ -118,7 +118,7 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .donerow .s{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
 .donerow .acts{margin-left:auto;display:flex;gap:4px;flex:none}
 .donerow .acts .btn.small{padding:4px 8px;min-height:30px}
-.formtitle{font-weight:800;margin-top:12px;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.formtitle{scroll-margin-top:190px;font-weight:800;margin-top:12px;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .iprow .ipname{font-weight:800;font-size:15px;padding:10px 0 2px;display:flex;align-items:center;gap:8px}
 .iprow .ipname .cnt{font-weight:500;color:var(--muted);font-size:12px}
 .vid .t{display:flex;align-items:center;gap:8px;padding:8px 0 8px 6px;cursor:pointer;user-select:none;font-weight:600}
@@ -318,13 +318,13 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.6';
+const APP_VER = 'v4.7';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
 const LS = { cfg: 'ipreport_cfg_v3', draft: 'ipreport_draft_v4', cache: 'ipreport_cache_v4' };
 const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等 IP 補資料', '其他'];          // 為什麼還在內審
-const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
+const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', '已標記小野', 'IP 已過片', '其他'];        // 外審之後的狀態
 const WD = ['日','一','二','三','四','五','六'];
 
 /* 狀態：右邊只顯示 內審／外審／已過片；細節（還在修改、IP 要修改…）顯示在片名旁邊 */
@@ -336,6 +336,7 @@ function stateOf(e){
     if(e.ipReply==='IP 已過片'){ stage='✅ 已過片'; }
     else if(e.ipReply==='已給 IP 看，未回覆') detail='等 IP 回覆';
     else if(e.ipReply==='IP 已回覆要修改') detail='IP 要修改';
+    else if(e.ipReply==='已標記小野') detail='已標記小野';
     else if(e.ipReply==='還沒給 IP 看') detail='還沒給 IP';
     else if(e.ipReply==='其他') detail=e.replyNote||'其他';
   } else if(e.stage==='內審'){ detail = e.reason==='其他' ? (e.reasonNote||'其他') : (e.reason||''); }
@@ -457,6 +458,7 @@ function editEntry(owner, dk, ip, film){
   drafts[day] ||= {}; drafts[day][ip] = Object.assign(clone(src), { _key: film, _owner: owner, _dirty: new Date().toISOString() }); persist();
   if(owner!==cfg.name && !myIps.includes(ip)) myIps.push(ip);   // 別人的 IP 也暫時列出來給你改
   openIp = ip; showPage('mine'); renderMine();
+  setTimeout(() => { const el = document.querySelector('.ipcard.open .formtitle'); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }, 60);
   toast(owner===cfg.name ? `正在編輯「${ip}｜${film}」` : `正在幫 ${owner} 編輯「${ip}｜${film}」`);
 }
 
@@ -550,7 +552,7 @@ function renderMine(){
           ${e.reason==='其他'?`<input type="text" data-f="reasonNote" style="margin-top:8px" placeholder="自己打：什麼狀況" value="${esc(e.reasonNote||'')}">`:''}</div>
         `:''}
         ${e.stage==='外審'?`
-        <div class="field"><label>給 IP 之後的狀態</label>
+        <div class="field"><label>外審之後的狀態</label>
           <select data-f="ipReply">${['',...REPLY_OPTS].map(o=>`<option value="${esc(o)}" ${e.ipReply===o?'selected':''}>${o||'請選擇'}</option>`).join('')}</select>
           ${e.ipReply==='其他'?`<input type="text" data-f="replyNote" style="margin-top:8px" placeholder="自己打：什麼狀況" value="${esc(e.replyNote||'')}">`:''}</div>
         <div class="field"><label>這支片卡在哪<small>沒有可留白</small></label><textarea data-f="pending" placeholder="例：IP 說要改音樂，還沒說要換哪首">${esc(e.pending)}</textarea></div>
@@ -603,7 +605,7 @@ function entryText(ip, e){
   const st0=stateOf(e); const L=[]; L.push(`${ip}｜${e.film||'（沒寫片名）'}　${st0.stage}${st0.detail?('（'+st0.detail+'）'):''}`);
   if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?(e.reasonNote||'其他'):e.reason}`);
   if(e.stage==='外審'){
-    if(e.ipReply) L.push(`　給 IP 之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
+    if(e.ipReply) L.push(`　外審之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
     if(e.pending) L.push(`　卡在哪：${e.pending}`);
     if(e.chased) L.push(`　催過片：${e.chased}`);
     if(e.reviewDate) L.push(`　外審日 ${fmtD(e.reviewDate)}`);
@@ -622,7 +624,7 @@ function entryDetail(e){
   const row = (k, v, red) => rows.push(`<div class="k">${k}</div><div class="v ${red?'red':''}">${v}</div>`);
   if(e.stage==='內審') row('還在內審因為', esc(e.reason==='其他'?(e.reasonNote||'其他'):(e.reason||'沒選')));
   if(e.stage==='外審'){
-    row('給 IP 之後', esc(e.ipReply==='其他'?(e.replyNote||'其他'):(e.ipReply||'沒選')));
+    row('外審之後', esc(e.ipReply==='其他'?(e.replyNote||'其他'):(e.ipReply||'沒選')));
     if(e.pending) row('卡在哪', esc(e.pending));
     row('催過片', e.chased ? esc(e.chased) : '<span style="color:var(--muted)">沒填</span>', e.chased==='還沒');
     if(e.reviewDate) row('外審日', esc(fmtD(e.reviewDate)));
