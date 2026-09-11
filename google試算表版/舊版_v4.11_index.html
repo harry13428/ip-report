@@ -44,9 +44,6 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .datebar .nav{width:40px;font-size:18px}
 .datebar .pick{flex:1;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
 .datebar .pick small{font-weight:500;color:var(--muted);font-size:12px}
-.rangebar{margin-top:8px}
-.rangebar .seg button{flex:1;text-align:center}
-.rangebar input[type=date]{min-height:38px;padding:6px 10px}
 .guide{margin:10px 0 4px;padding:9px 12px;border-radius:10px;background:var(--soft);color:var(--accent);font-size:13px;line-height:1.5}
 .guide b{font-weight:800}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
@@ -281,10 +278,6 @@ a{color:var(--accent)}
       <button class="pick" id="dayPick" title="打開日曆"><span>📅</span><span id="dayLabel"></span><small id="daySub"></small></button>
       <button class="nav" id="dayNext" title="後一天">›</button>
     </div>
-    <div class="rangebar">
-      <div class="seg" id="modeSeg"><button class="on" data-m="day">單日</button><button data-m="week">本週（一～日）</button><button data-m="range">自訂範圍</button></div>
-      <div class="row" id="rangeInputs" style="display:none;margin-top:6px"><input type="date" id="rangeFrom" style="flex:1"><span>到</span><input type="date" id="rangeTo" style="flex:1"></div>
-    </div>
     <div class="guide" id="guide"></div>
   </header>
 
@@ -325,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.0';
+const APP_VER = 'v4.11';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -382,7 +375,6 @@ let everyone = loadJSON(LS.cache, {});
 let filter = 'all';
 let openIp = null; let openAll = {}; let openPerson = {}; let openIpAll = {};
 let calMonth = null;
-let mode = 'day'; let rangeFrom = ''; let rangeTo = '';
 
 function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', photos:[], links:[], help:'', updatedAt:'' }; }
 function draft(ip){ drafts[day] ||= {}; drafts[day][ip] ||= blankEntry(); return drafts[day][ip]; }
@@ -463,7 +455,7 @@ async function uploadPhotos(ip, files){
 /* 把已上傳的某支片載入表單編輯（可以是別人的：_owner 記誰的） */
 function editEntry(owner, dk, ip, film){
   const list = (everyone[owner]?.weeks?.[dk]?.[ip]) || []; const src = list.find(x=>x.film===film); if(!src) return toast('找不到這支片');
-  day = dk; if(mode!=='day') setMode('day'); renderDay();
+  day = dk; renderDay();
   if(owner===cfg.name && !myIps.includes(ip)) myIps.push(ip);
   drafts[day] ||= {}; drafts[day][ip] = Object.assign(clone(src), { _key: film, _owner: owner, _dirty: new Date().toISOString() }); persist();
   if(owner!==cfg.name && !myIps.includes(ip)) myIps.push(ip);   // 別人的 IP 也暫時列出來給你改
@@ -527,23 +519,11 @@ function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先�
   if(cfg.name && cfg.name !== name){ myIps = []; drafts = {}; }
   cfg = { name }; saveJSON(LS.cfg, cfg); myIps = [...new Set([...(everyone[name]?.ips||[]), ...myIps])]; persist(); hideWho(); renderHeader(); refreshAll(true); showPage('mine'); toast(`嗨 ${name}，開始填吧`); }
 
-/* ================= 日期範圍 ================= */
-function mondayOf(key){ const d=parseYmd(key); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return ymd(d); }
-function curRange(){ if(mode==='week'){ const m=mondayOf(day); return [m, shiftDay(m,6)]; } if(mode==='range'){ const a=rangeFrom||day, b=rangeTo||day; return a<=b?[a,b]:[b,a]; } return [day, day]; }
-function datesIn(){ const [a,b]=curRange(); const out=[]; let k=a; let guard=0; while(k<=b && guard++<400){ out.push(k); k=shiftDay(k,1); } return out; }
-function rangeLabel(){ const [a,b]=curRange(); if(a===b) return dayLabel(a).main; return `${fmtD(a)} – ${fmtD(b)}`; }
-function setMode(m){ mode=m; $$('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.m===m)); $('#rangeInputs').style.display = m==='range' ? '' : 'none';
-  if(m==='range'){ if(!rangeFrom){ rangeFrom = mondayOf(day); rangeTo = day; } $('#rangeFrom').value=rangeFrom; $('#rangeTo').value=rangeTo; }
-  renderDay(); renderAll(); }
-$$('#modeSeg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
-$('#rangeFrom').onchange = () => { rangeFrom = $('#rangeFrom').value; renderDay(); renderAll(); };
-$('#rangeTo').onchange = () => { rangeTo = $('#rangeTo').value; renderDay(); renderAll(); };
-
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
   $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選狀態 → 回答問題 → 儲存並上傳。上傳後表單清空可以寫下一支；要看或改已上傳的片，去「全部人」。',
-                            all:'<b>這頁：</b>上面可切「本週」或「自訂範圍」看整段期間。點人名 → 點 IP → 看每支片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
-function renderDay(){ const w=dayLabel(day); if(mode==='day'){ $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; } else { $('#dayLabel').textContent=rangeLabel(); $('#daySub').textContent = mode==='week' ? '本週' : '自訂'; } }
+                            all:'<b>這頁：</b>點人名 → 點 IP → 看每支片。藍＝內審、橘＝外審、綠＝已過片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
+function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
 
 /* ================= 畫面：我的回報 ================= */
@@ -636,13 +616,8 @@ function entryText(e){
   return L.join('\n');
 }
 /* 一個 IP 只出現一次，底下列它的片 */
-/* 某個人在目前日期範圍內的片：[{dk, ip, e}] */
-function entriesOf(file){ const out=[]; for(const dk of datesIn()){ const wk=file?.weeks?.[dk]||{}; for(const ip of Object.keys(wk)) for(const e of wk[ip]) out.push({dk, ip, e}); } return out; }
-/* 一個 IP 只出現一次，底下列它的片（跨日時標日期） */
-function personText(name, file){ const items=entriesOf(file); const multi = datesIn().length>1;
-  if(!items.length) return `【${name}】${multi?'這段期間':'這天'}沒填`;
-  const byIp={}; items.forEach(x=>(byIp[x.ip] ||= []).push(x));
-  return `【${name}】\n` + Object.keys(byIp).map(ip=>`■ ${ip}\n` + byIp[ip].map(x=>entryText(x.e).replace(/^　・/, multi?`　・${fmtD(x.dk)}｜`:'　・')).join('\n')).join('\n'); }
+function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk).filter(ip=>wk[ip].length);
+  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.map(ip=>`■ ${ip}\n` + wk[ip].map(e=>entryText(e)).join('\n')).join('\n'); }
 function entryDetail(e){
   const rows = [];
   const row = (k, v, red) => rows.push(`<div class="k">${k}</div><div class="v ${red?'red':''}">${v}</div>`);
@@ -663,33 +638,33 @@ function entryDetail(e){
   return h; }
 function passFilter(e){ if(filter==='all') return true; if(filter==='help') return !!e.help; if(filter==='wait') return e.ipReply==='已給 IP 看，未回覆'; if(filter==='in') return e.stage==='內審'; if(filter==='out') return e.stage==='外審'; if(filter==='done') return e.stage==='已完成' || e.ipReply==='IP 已過片'; return true; }
 function renderAll(){
-  const list = $('#allList'); const multi = datesIn().length>1;
+  const list = $('#allList');
   const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
   if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">還沒有任何人上傳回報。</div></div>`; return; }
   const html = names.map(name => {
-    const items = entriesOf(everyone[name]).filter(x=>passFilter(x.e));
-    if(filter!=='all' && !items.length) return '';
-    const byIp={}; items.forEach(x=>(byIp[x.ip] ||= []).push(x));
-    const ips = Object.keys(byIp); const n = items.length;
+    const wk = everyone[name].weeks?.[day] || {};
+    const ips = Object.keys(wk).filter(ip => wk[ip].some(passFilter));
+    if(filter!=='all' && !ips.length) return '';
+    let n=0;
     const rows = ips.length ? ips.map(ip => {
-      const vids = byIp[ip]; const ik = name+'|'+ip; const io = !!openIpAll[ik];
-      return `<div class="iprow ${io?'open':''}" data-ik="${esc(ik)}"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 支</span><span class="caret">${io?'▴':'▾'}</span></div><div class="ipbody">` + vids.map(({dk,e}) => { const k = name+'|'+dk+'|'+ip+'|'+e.film; const st = stateOf(e);
+      const vids = wk[ip].filter(passFilter); n += vids.length;
+      const ik = name+'|'+ip; const io = !!openIpAll[ik];
+      return `<div class="iprow ${io?'open':''}" data-ik="${esc(ik)}"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 支</span><span class="caret">${io?'▴':'▾'}</span></div><div class="ipbody">` + vids.map(e => { const k = name+'|'+ip+'|'+e.film; const st = stateOf(e);
         const chips = [];
-        if(multi) chips.push(`<span class="det">📅 ${esc(fmtD(dk))}</span>`);
         if(st.detail && !e.help) chips.push(`<span class="det">${esc(st.detail)}</span>`);
-        if(e.help){ const d = st.detail.replace('・⚠️ 需要主管協助','').replace('⚠️ 需要主管協助',''); if(d) chips.push(`<span class="det">${esc(d)}</span>`); chips.push(`<span class="det warn">⚠️ 需要主管協助</span>`); }
+        if(e.help){ if(st.detail.replace('⚠️ 需要主管協助','').replace(/・$/,'')) chips.push(`<span class="det">${esc(st.detail.replace('・⚠️ 需要主管協助','').replace('⚠️ 需要主管協助',''))}</span>`); chips.push(`<span class="det warn">⚠️ 需要主管協助</span>`); }
         if(e.stage==='外審' && e.chased) chips.push(`<span class="det">催過片：${esc(e.chased)}</span>`);
         if(e.publishDate) chips.push(`<span class="det">預計上片 ${esc(fmtD(e.publishDate))}</span>`);
-        return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="stage ${st.scls}">${st.stage}</span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div>${chips.length?`<div class="sub">${chips.join('')}</div>`:''}<div class="d">${entryDetail(e)}<div class="row" style="margin-top:10px"><button class="btn small" data-act="edit" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">✏️ 編輯</button><button class="btn small" data-act="move" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">↔ 移到別的 IP</button><button class="btn small danger" data-act="del" data-o="${esc(name)}" data-dk="${esc(dk)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">🗑 刪除</button></div></div></div>`; }).join('') + `</div></div>`; }).join('')
-      : `<div class="empty" style="padding:8px">${multi?'這段期間沒填':'這天沒填'}</div>`;
+        return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="stage ${st.scls}">${st.stage}</span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div>${chips.length?`<div class="sub">${chips.join('')}</div>`:''}<div class="d">${entryDetail(e)}<div class="row" style="margin-top:10px"><button class="btn small" data-act="edit" data-o="${esc(name)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">✏️ 編輯</button><button class="btn small" data-act="move" data-o="${esc(name)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">↔ 移到別的 IP</button><button class="btn small danger" data-act="del" data-o="${esc(name)}" data-ip="${esc(ip)}" data-film="${esc(e.film)}">🗑 刪除</button></div></div></div>`; }).join('') + `</div></div>`; }).join('')
+      : `<div class="empty" style="padding:8px">這天沒填</div>`;
     const po = openPerson[name] !== undefined ? openPerson[name] : (name===cfg.name);
-    return `<div class="card person ${po?'open':''}" data-p="${esc(name)}"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':(multi?'這段期間沒填':'這天沒填')}</span><span class="caret">${po?'▴':'▾'}</span></h3><div class="pbody">${rows}</div></div>`;
+    return `<div class="card person ${po?'open':''}" data-p="${esc(name)}"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':(ips.length?'':'這天沒填')}</span><span class="caret">${po?'▴':'▾'}</span></h3><div class="pbody">${rows}</div></div>`;
   }).join('');
   list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
   list.querySelectorAll('.iprow .ipname').forEach(h => h.onclick = () => { const k=h.parentElement.dataset.ik; openIpAll[k]=!openIpAll[k]; renderAll(); });
   list.querySelectorAll('.person h3').forEach(h => h.onclick = () => { const n=h.parentElement.dataset.p; const cur = openPerson[n] !== undefined ? openPerson[n] : (n===cfg.name); openPerson[n] = !cur; renderAll(); });
   list.querySelectorAll('.vid .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
-  list.querySelectorAll('[data-act]').forEach(b => b.onclick = () => { const {act,o,dk,ip,film} = b.dataset; if(act==='edit') editEntry(o, dk, ip, film); else if(act==='move') moveEntryUI(o, dk, ip, film); else deleteEntryUI(o, dk, ip, film); });
+  list.querySelectorAll('[data-act]').forEach(b => b.onclick = () => { const {act,o,ip,film} = b.dataset; if(act==='edit') editEntry(o, day, ip, film); else if(act==='move') moveEntryUI(o, day, ip, film); else deleteEntryUI(o, day, ip, film); });
 }
 
 /* ================= 日曆 ================= */
@@ -702,14 +677,14 @@ function renderCal(){ calMonth ||= day.slice(0,7); const [y,m]=calMonth.split('-
   $('#calGrid').innerHTML=h; $('#calGrid').querySelectorAll('.day').forEach(b=>b.onclick=()=>{ setDay(b.dataset.d); closeCal(); }); }
 function openCal(){ calMonth=day.slice(0,7); renderCal(); $('#cal').classList.add('on'); $('#calBg').classList.add('on'); }
 function closeCal(){ $('#cal').classList.remove('on'); $('#calBg').classList.remove('on'); }
-function setDay(k){ day=k; if(mode==='range'){ rangeFrom=mondayOf(k); rangeTo=k; $('#rangeFrom').value=rangeFrom; $('#rangeTo').value=rangeTo; } renderDay(); renderMine(); renderAll(); }
+function setDay(k){ day=k; renderDay(); renderMine(); renderAll(); }
 $('#calPrev').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m-2,1)).slice(0,7); renderCal(); };
 $('#calNext').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m,1)).slice(0,7); renderCal(); };
 $('#calToday').onclick=()=>{ setDay(ymd(new Date())); closeCal(); };
 $('#calClose').onclick=closeCal; $('#calBg').onclick=closeCal;
 $('#dayPick').onclick=openCal;
-$('#dayPrev').onclick=()=>setDay(shiftDay(day, mode==='week'?-7:-1));
-$('#dayNext').onclick=()=>setDay(shiftDay(day, mode==='week'?7:1));
+$('#dayPrev').onclick=()=>setDay(shiftDay(day,-1));
+$('#dayNext').onclick=()=>setDay(shiftDay(day,1));
 
 /* ================= ☰ 選單 ================= */
 function openDrawer(){ $('#drawer').classList.add('on'); $('#drawerBg').classList.add('on'); }
@@ -723,7 +698,7 @@ $('#btnMenu').onclick=openDrawer; $('#drawerBg').onclick=closeDrawer;
 })();
 $('#mSwitch').onclick=()=>{ closeDrawer(); showWho(); };
 $('#mSheet').href = SHEET_URL;
-$('#mCopyAll').onclick=()=>{ closeDrawer(); copyText(`📋 IP 週報 ${rangeLabel()}\n\n` + Object.keys(everyone).sort().map(n=>personText(n, everyone[n])).join('\n\n')); };
+$('#mCopyAll').onclick=()=>{ closeDrawer(); const w=dayLabel(day); copyText(`📋 IP 週報 ${w.main}\n\n` + Object.keys(everyone).sort().map(n=>personText(n, everyone[n])).join('\n\n')); };
 $('#mExport').onclick=()=>{ closeDrawer(); const blob=new Blob([JSON.stringify({cfgName:cfg.name, myIps, drafts, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
 $('#mRefresh').onclick=()=>{ closeDrawer(); refreshAll(false); };
 
