@@ -8,8 +8,14 @@ function sheetOf(name, head){
   const ss = SpreadsheetApp.getActive();
   let s = ss.getSheetByName(name);
   if(!s){ s = ss.insertSheet(name); s.appendRow(head); s.setFrozenRows(1); }
+  s.getRange('A:Z').setNumberFormat('@');   // 全部當文字，避免日期自動轉換
   return s;
 }
+/* 試算表會把 2026-09-11 之類的字自動變成日期，讀回來一律轉回文字（週＝yyyy-MM-dd，時間＝ISO） */
+function tz(){ return SpreadsheetApp.getActive().getSpreadsheetTimeZone() || Session.getScriptTimeZone(); }
+function txtDay(v){ if(v instanceof Date) return isNaN(v) ? '' : Utilities.formatDate(v, tz(), 'yyyy-MM-dd'); return String(v==null?'':v); }
+function txtIso(v){ if(v instanceof Date) return isNaN(v) ? '' : v.toISOString(); return String(v==null?'':v); }
+function txt(v){ if(v instanceof Date) return txtIso(v); return String(v==null?'':v); }
 function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 function doGet(e){
@@ -37,10 +43,10 @@ function getAll(week){
   const editors = {};
   const ev = es.getDataRange().getValues();
   for(let i=1;i<ev.length;i++){ const [editor, ips, updatedAt] = ev[i]; if(!editor) continue;
-    editors[editor] = { name:String(editor), ips: safeJson(ips, []), updatedAt: String(updatedAt||''), weeks:{} }; }
+    editors[editor] = { name:txt(editor), ips: safeJson(ips, []), updatedAt: txt(updatedAt), weeks:{} }; }
   const rv = rs.getDataRange().getValues();
-  for(let i=1;i<rv.length;i++){ const row = rv[i]; const o = {}; R_HEAD.forEach((k,j)=>o[k]=row[j]);
-    if(!o.editor || !o.ip) continue; if(week && String(o.week)!==week) continue;
+  for(let i=1;i<rv.length;i++){ const row = rv[i]; const o = {}; R_HEAD.forEach((k,j)=>o[k]=txt(row[j])); o.week = txtDay(row[0]);
+    if(!o.editor || !o.ip) continue; if(week && o.week!==week) continue;
     const ed = editors[o.editor] || (editors[o.editor] = { name:String(o.editor), ips:[], updatedAt:'', weeks:{} });
     const wk = ed.weeks[o.week] || (ed.weeks[o.week] = {});
     wk[o.ip] = { status:String(o.status||''), pending:String(o.pending||''), chase:String(o.chase||''), news:String(o.news||''),
@@ -56,11 +62,11 @@ function saveEntry(b){
   const e = b.entry || {}; const key = [String(b.week), String(b.editor), String(b.ip)];
   const vals = rs.getDataRange().getValues();
   let rowIdx = -1;
-  for(let i=1;i<vals.length;i++){ if(String(vals[i][0])===key[0] && String(vals[i][1])===key[1] && String(vals[i][2])===key[2]){ rowIdx=i+1; break; } }
+  for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===key[0] && txt(vals[i][1])===key[1] && txt(vals[i][2])===key[2]){ rowIdx=i+1; break; } }
   const now = new Date().toISOString();
   const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now];
   if(rowIdx>0){
-    const old = String(vals[rowIdx-1][12]||'');
+    const old = txt(vals[rowIdx-1][12]);
     if(e.updatedAt && old && old > e.updatedAt && b.force!==true) return { ok:true, skipped:true, reason:'server newer', updatedAt: old };
     rs.getRange(rowIdx, 1, 1, row.length).setValues([row]);
   } else rs.appendRow(row);
@@ -71,7 +77,7 @@ function saveEntry(b){
 function setIps(editor, ips){
   const es = sheetOf('剪輯師', E_HEAD);
   const vals = es.getDataRange().getValues(); const now = new Date().toISOString();
-  for(let i=1;i<vals.length;i++){ if(String(vals[i][0])===String(editor)){ es.getRange(i+1,1,1,3).setValues([[editor, JSON.stringify(ips||[]), now]]); return { ok:true }; } }
+  for(let i=1;i<vals.length;i++){ if(txt(vals[i][0])===String(editor)){ es.getRange(i+1,1,1,3).setValues([[editor, JSON.stringify(ips||[]), now]]); return { ok:true }; } }
   es.appendRow([editor, JSON.stringify(ips||[]), now]); return { ok:true };
 }
 
