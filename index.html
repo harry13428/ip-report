@@ -217,7 +217,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v2.0';
+const APP_VER = 'v2.1';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';            // ← Google Apps Script 網頁應用程式網址（…/exec），部署後填入
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';          // ← Google 試算表網址（給主管開）
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -262,7 +262,7 @@ let filter = 'all';
 let openIp = null;
 let storageOK = true; try{ localStorage.setItem('__t','1'); storageOK = localStorage.getItem('__t')==='1'; localStorage.removeItem('__t'); }catch(e){ storageOK=false; }
 
-function blankEntry(){ return { status:'', pending:'', chase:'', news:'', pass:'無', assets:'無', assetsNote:'', help:'', opening:[], updatedAt:'' }; }
+function blankEntry(){ return { film:'', status:'', pending:'', chase:'', news:'', pass:'無', assets:'無', assetsNote:'', help:'', opening:[], updatedAt:'' }; }
 function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
 function entry(ip){ ensureMine(); mine.weeks[week] ||= {}; mine.weeks[week][ip] ||= blankEntry(); return mine.weeks[week][ip]; }
 function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; return c; }
@@ -323,7 +323,7 @@ async function uploadIps(){ if(!cfg.name || !API) return; try{ await apiPost({ a
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  const g = { mine:'<b>怎麼用：</b>① 點 IP 展開 → ② 選狀態、填卡點 → ③ 按「儲存並上傳」。改到一半沒上傳會標「未上傳」。',
+  const g = { mine:'<b>怎麼用：</b>① 點 IP 展開 → ② 填片名、卡在哪 → ③ 最後選狀態、按「儲存並上傳」。改到一半沒上傳會標「未上傳」。',
               all:'<b>這頁：</b>大家這週的回報。紅色＝需要主管協助。上面可以切週、用篩選只看卡住的。',
               setup:'<b>第一次：</b>填名字 → 按確定。之後不用再進來。' }[p];
   $('#guide').innerHTML = g; window.scrollTo(0,0); }
@@ -347,12 +347,11 @@ function renderMine(){
     const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remote || blankEntry()));
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head" data-ip="${esc(ip)}"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}</span>
+      <div class="head" data-ip="${esc(ip)}"><span class="sdot ${st?st.cls:''}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}</span>
         ${dirtyIp?'<span class="badge dirty">未上傳</span>':(remote?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        <div class="field"><label>這支 IP 這週的狀態</label>
-          <div class="seg status-seg">${Object.entries(STATUS).map(([k,v])=>`<button class="${e.status===k?'on '+v.cls:''}" data-f="status" data-v="${k}">${v.label}</button>`).join('')}</div></div>
-        <div class="field"><label>1. 沒過的片＋卡在哪<small>片名＋版本＋卡在哪一步</small></label><textarea data-f="pending" placeholder="例：第 3 集 v2，給 IP 看了 3 天沒回">${esc(e.pending)}</textarea></div>
+        <div class="field"><label>這週的影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
+        <div class="field"><label>1. 卡在哪<small>沒過的原因、卡在哪一步</small></label><textarea data-f="pending" placeholder="例：給 IP 看了 3 天沒回">${esc(e.pending)}</textarea></div>
         <div class="field"><label>2. 追過沒／對方回覆</label><textarea data-f="chase" placeholder="例：週三群組提醒一次，已跟小野講">${esc(e.chase)}</textarea></div>
         <div class="field"><label>3. IP 新動態<small>不喜歡什麼、想換什麼、喜歡的風格</small></label><textarea data-f="news" placeholder="例：最近在調美感，不要太跳">${esc(e.news)}</textarea></div>
         <div class="field"><label>4. 過片處理</label><div class="seg">${PASS_OPTS.map(o=>`<button class="${e.pass===o?'on':''}" data-f="pass" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>
@@ -362,6 +361,8 @@ function renderMine(){
         <div class="field"><label>7. 本週開頭調整<small>片名／改了什麼／為什麼</small></label>
           <div>${(e.opening||[]).map((o,i)=>openingRow(o,i)).join('')}</div>
           <button class="btn small" data-addop="1" style="margin-top:8px">＋ 加一支</button></div>
+        <div class="field"><label>這支 IP 這週的狀態<small>最後選</small></label>
+          <div class="seg status-seg">${Object.entries(STATUS).map(([k,v])=>`<button class="${e.status===k?'on '+v.cls:''}" data-f="status" data-v="${k}">${v.label}</button>`).join('')}</div></div>
         <div class="divider"></div>
         <div class="row">
           <button class="btn primary" data-save="1" style="flex:1">💾 儲存並上傳</button>
@@ -371,7 +372,7 @@ function renderMine(){
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
-      if(el.tagName==='TEXTAREA'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
+      if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; persistDraft(); markDirty(card); }; }
       else el.onclick = () => { entry(ip)[el.dataset.f] = el.dataset.v; persistDraft(); renderMine(); };
     });
     card.querySelector('[data-addop]').onclick = () => { entry(ip).opening.push({film:'',change:'',why:''}); persistDraft(); renderMine(); };
@@ -387,7 +388,8 @@ function markDirty(card){ const b=card.querySelector('.head .badge'); if(b){ b.c
 /* ================= 畫面：全部人 ================= */
 function entryText(ip, e){
   const L=[]; L.push(`${STATUS[e.status]?.label || '⚪ 未填狀態'}　${ip}`);
-  if(e.pending) L.push(`　沒過的片／卡在哪：${e.pending}`);
+  if(e.film) L.push(`　影片：${e.film}`);
+  if(e.pending) L.push(`　卡在哪：${e.pending}`);
   if(e.chase) L.push(`　追過沒／回覆：${e.chase}`);
   if(e.news) L.push(`　IP 新動態：${e.news}`);
   if(e.pass && e.pass!=='無') L.push(`　過片處理：${e.pass}`);
@@ -409,7 +411,8 @@ function renderAll(){
     if(filter!=='all' && !ips.length) return '';
     const rows = ips.length ? ips.map(ip => { const e = wk[ip]; if(!e) return `<div class="iprow"><div class="t"><span class="sdot"></span>${esc(ip)}<span class="st">這週還沒填</span></div></div>`;
       return `<div class="iprow"><div class="t"><span class="sdot ${STATUS[e.status]?.cls||''}"></span>${esc(ip)}<span class="st">${STATUS[e.status]?.label||'未填狀態'}${e.updatedAt?('・'+fmtTime(e.updatedAt)):''}</span></div>
-        ${e.pending?`<div class="kv"><b>沒過／卡在哪</b>${esc(e.pending)}</div>`:''}
+        ${e.film?`<div class="kv"><b>影片</b>${esc(e.film)}</div>`:''}
+        ${e.pending?`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`:''}
         ${e.chase?`<div class="kv"><b>追過沒</b>${esc(e.chase)}</div>`:''}
         ${e.news?`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`:''}
         ${(e.pass&&e.pass!=='無')?`<div class="kv"><b>過片處理</b>${esc(e.pass)}</div>`:''}

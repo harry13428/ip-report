@@ -1,13 +1,14 @@
 /* IP 週報 App 的後端：綁在 Google 試算表上的 Apps Script
  * 部署方式見同資料夾「部署步驟.md」。App 用 GET 讀、POST 寫。
  */
-const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt'];
+const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt','film'];
 const E_HEAD = ['editor','ips','updatedAt'];
 
 function sheetOf(name, head){
   const ss = SpreadsheetApp.getActive();
   let s = ss.getSheetByName(name);
   if(!s){ s = ss.insertSheet(name); s.appendRow(head); s.setFrozenRows(1); }
+  const h = s.getRange(1,1,1,head.length).getValues()[0]; if(h.join('\u0001')!==head.join('\u0001')) s.getRange(1,1,1,head.length).setValues([head]);   // 欄位有新增時補標題
   s.getRange('A:Z').setNumberFormat('@');   // 全部當文字，避免日期自動轉換
   return s;
 }
@@ -51,7 +52,7 @@ function getAll(week){
     const wk = ed.weeks[o.week] || (ed.weeks[o.week] = {});
     wk[o.ip] = { status:String(o.status||''), pending:String(o.pending||''), chase:String(o.chase||''), news:String(o.news||''),
       pass:String(o.pass||'無'), assets:String(o.assets||'無'), assetsNote:String(o.assetsNote||''), help:String(o.help||''),
-      opening: safeJson(o.opening, []), updatedAt:String(o.updatedAt||'') };
+      opening: safeJson(o.opening, []), updatedAt:String(o.updatedAt||''), film:String(o.film||'') };
   }
   return { ok:true, week, editors };
 }
@@ -64,7 +65,7 @@ function saveEntry(b){
   let rowIdx = -1;
   for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===key[0] && txt(vals[i][1])===key[1] && txt(vals[i][2])===key[2]){ rowIdx=i+1; break; } }
   const now = new Date().toISOString();
-  const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now];
+  const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now, e.film||''];
   if(rowIdx>0){
     const old = txt(vals[rowIdx-1][12]);
     if(e.updatedAt && old && old > e.updatedAt && b.force!==true) return { ok:true, skipped:true, reason:'server newer', updatedAt: old };
