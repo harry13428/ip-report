@@ -318,7 +318,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.7';
+const APP_VER = 'v4.8';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -519,7 +519,7 @@ function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先�
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選內審或外審 → 回答問題 → 儲存並上傳。上傳後表單會清空，可以接著寫下一支。',
+  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選狀態 → 回答問題 → 儲存並上傳。上傳後表單清空可以寫下一支；要看或改已上傳的片，去「全部人」。',
                             all:'<b>這頁：</b>點人名 → 點 IP → 看每支片。藍＝內審、橘＝外審、綠＝已過片；點影片那格看細節，可編輯、移到別的 IP、刪除。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
@@ -537,11 +537,10 @@ function renderMine(){
     const hasDraft = !!(e.film||e.stage||e.pending||e.news||e.help||(e.photos||[]).length||(e.links||[]).length);
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天 ${done.length} 支已上傳`:''}</small></span>
+      <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天已上傳 ${done.length} 支，到「全部人」看`:''}</small></span>
         ${hasDraft?`<span class="badge dirty">${editing?'編輯中':'寫到一半'}</span>`:''}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        ${done.length?`<div class="donelist">${done.map(x=>{ const st=stateOf(x); return `<div class="donerow"><span class="stage ${st.scls}">${st.stage}</span><span class="f">${esc(x.film||'（沒寫片名）')}</span>${st.detail?`<span class="det">${esc(st.detail)}</span>`:''}<span class="acts"><button class="btn small" data-edit="${esc(x.film)}">編輯</button><button class="btn small" data-move="${esc(x.film)}" title="移到別的 IP">移</button><button class="btn small danger" data-del="${esc(x.film)}" title="刪掉這支">刪</button></span></div>`; }).join('')}</div>`:''}
-        <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:(done.length?'＋ 再寫一支':'寫一支影片')}</div>
+        <div class="formtitle">${editing?`✏️ 正在編輯${(e._owner&&e._owner!==cfg.name)?` ${esc(e._owner)} 的`:''}「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:'新增一支影片'}</div>
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
         <div class="field"><label>預計上片日<small>這支片什麼時候要上</small></label><input type="date" data-f="publishDate" value="${esc(e.publishDate||'')}"></div>
         <div class="field"><label>影片狀態</label>
@@ -584,9 +583,6 @@ function renderMine(){
       else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { draft(ip)[el.dataset.f] = el.value; touch(ip); persist(); }; }
       else el.onclick = () => { draft(ip)[el.dataset.f] = el.dataset.v; touch(ip); persist(); renderMine(); };
     });
-    card.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editEntry(cfg.name, day, ip, b.dataset.edit));
-    card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => moveEntryUI(cfg.name, day, ip, b.dataset.move));
-    card.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteEntryUI(cfg.name, day, ip, b.dataset.del));
     const fi = card.querySelector('[data-photo]'); if(fi) fi.onchange = () => uploadPhotos(ip, [...fi.files]);
     card.querySelectorAll('[data-rmph]').forEach(b => b.onclick = () => { draft(ip).photos.splice(+b.dataset.rmph,1); touch(ip); persist(); renderMine(); });
     const addLk = () => { const inp = card.querySelector('[data-newlink]'); let u = (inp.value||'').trim(); if(!u) return toast('先貼連結'); if(!/^https?:\/\//i.test(u)) u = 'https://' + u; (draft(ip).links ||= []).push(u); inp.value=''; touch(ip); persist(); renderMine(); };
