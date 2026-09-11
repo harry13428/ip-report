@@ -205,7 +205,7 @@ a{color:var(--accent)}
 .stage.done{background:#DCFCE7;color:#166534}
 .stage.none{background:var(--line);color:var(--muted)}
 @media (prefers-color-scheme: dark){ .stage.in{background:#1E3A8A;color:#BFDBFE} .stage.out{background:#7C2D12;color:#FED7AA} .stage.done{background:#14532D;color:#BBF7D0} }
-.vid .sub{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px}
+.vid .sub{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;cursor:pointer;user-select:none}
 .vid .sub .det{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink)}
 .vid .sub .det.warn{background:var(--warn-bg);color:var(--stuck);border-color:transparent}
 .vid .d{display:none;border-top:1px solid var(--line);padding:4px 12px 12px;background:var(--card)}
@@ -332,7 +332,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.3';
+const APP_VER = 'v5.4';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -700,7 +700,7 @@ function renderAll(){
   list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
   list.querySelectorAll('.iprow .ipname').forEach(h => h.onclick = () => { const k=h.parentElement.dataset.ik; openIpAll[k]=!openIpAll[k]; renderAll(); });
   list.querySelectorAll('.person h3').forEach(h => h.onclick = () => { const n=h.parentElement.dataset.p; const cur = openPerson[n] !== undefined ? openPerson[n] : (n===cfg.name); openPerson[n] = !cur; renderAll(); });
-  list.querySelectorAll('.vid .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
+  list.querySelectorAll('.vid .t, .vid .sub').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });   // 點標題列或標籤列都能展開／收合
   list.querySelectorAll('[data-act]').forEach(b => b.onclick = () => { const {act,o,dk,ip,film} = b.dataset; if(act==='edit') editEntry(o, dk, ip, film); else if(act==='move') moveEntryUI(o, dk, ip, film); else deleteEntryUI(o, dk, ip, film); });
 }
 
