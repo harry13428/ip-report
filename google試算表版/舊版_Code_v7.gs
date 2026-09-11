@@ -10,10 +10,9 @@ const E_HEAD = ['editor','ips','updatedAt'];
 function sheetOf(name, head){
   const ss = SpreadsheetApp.getActive();
   let s = ss.getSheetByName(name);
-  let fresh = false;
-  if(!s){ s = ss.insertSheet(name); s.appendRow(head); s.setFrozenRows(1); fresh = true; }
-  const h = s.getRange(1,1,1,head.length).getValues()[0];
-  if(fresh || h.join('\u0001')!==head.join('\u0001')){ s.getRange(1,1,1,head.length).setValues([head]); s.getRange('A:Z').setNumberFormat('@'); }   // 只在新建或欄位變動時設文字格式（這步很慢，不要每次做）
+  if(!s){ s = ss.insertSheet(name); s.appendRow(head); s.setFrozenRows(1); }
+  const h = s.getRange(1,1,1,head.length).getValues()[0]; if(h.join('\u0001')!==head.join('\u0001')) s.getRange(1,1,1,head.length).setValues([head]);   // 欄位有新增時補標題
+  s.getRange('A:Z').setNumberFormat('@');   // 全部當文字，避免日期自動轉換
   return s;
 }
 /* 試算表會把 2026-09-11 之類的字自動變成日期，讀回來一律轉回文字（週＝yyyy-MM-dd，時間＝ISO） */
@@ -26,12 +25,7 @@ function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMi
 function doGet(e){
   const p = (e && e.parameter) || {};
   if(p.action === 'ping') return out({ ok:true, app:'ip-report', time:new Date().toISOString() });
-  if(p.action === 'all'){
-    const cache = CacheService.getScriptCache(); const hit = !p.week && cache.get('all');
-    if(hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
-    const res = JSON.stringify(getAll(p.week || '')); if(!p.week) cache.put('all', res, 120);
-    return ContentService.createTextOutput(res).setMimeType(ContentService.MimeType.JSON);
-  }
+  if(p.action === 'all')  return out(getAll(p.week || ''));
   return out({ ok:false, error:'unknown action' });
 }
 
@@ -42,12 +36,8 @@ function doPost(e){
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try{
-    CacheService.getScriptCache().remove('all');   // 任何寫入都讓讀取快取失效
-    if(body.action === 'save')     return out(saveEntry(body));
-    if(body.action === 'ips')      return out(setIps(body.editor, body.ips));
-    if(body.action === 'delete')   return out(deleteEntry(body));
-    if(body.action === 'move')     return out(moveEntry(body));
-    if(body.action === 'deleteIp') return out(deleteIp(body));
+    if(body.action === 'save') return out(saveEntry(body));
+    if(body.action === 'ips')  return out(setIps(body.editor, body.ips));
     return out({ ok:false, error:'unknown action' });
   } finally { lock.releaseLock(); }
 }
@@ -90,34 +80,6 @@ function saveEntry(b){
   } else rs.appendRow(row);
   if(Array.isArray(b.ips)) setIps(b.editor, b.ips);
   return { ok:true, updatedAt: now };
-}
-
-function findRow(vals, week, editor, ip, film){ for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===String(week) && txt(vals[i][1])===String(editor) && txt(vals[i][2])===String(ip) && txt(vals[i][13])===String(film||'')) return i+1; } return -1; }
-/* 刪一支片 */
-function deleteEntry(b){
-  const rs = sheetOf('回報', R_HEAD); const vals = rs.getDataRange().getValues();
-  const r = findRow(vals, b.week, b.editor, b.ip, b.film); if(r<0) return { ok:true, missing:true };
-  rs.deleteRow(r); return { ok:true };
-}
-/* 整筆移到別的 IP（改 ip 欄；新 IP 若不在該人的清單就加進去） */
-function moveEntry(b){
-  const rs = sheetOf('回報', R_HEAD); const vals = rs.getDataRange().getValues();
-  const r = findRow(vals, b.week, b.editor, b.ip, b.film); if(r<0) return { ok:false, error:'找不到這支片' };
-  const newIp = String(b.newIp||'').trim(); if(!newIp) return { ok:false, error:'沒有新的 IP 名字' };
-  if(findRow(vals, b.week, b.editor, newIp, b.film) > 0) return { ok:false, error:'那個 IP 底下同一天已經有同名的片' };
-  rs.getRange(r, 3).setValue(newIp); rs.getRange(r, 13).setValue(new Date().toISOString());
-  const es = sheetOf('剪輯師', E_HEAD); const ev = es.getDataRange().getValues();
-  for(let i=1;i<ev.length;i++){ if(txt(ev[i][0])===String(b.editor)){ const ips = safeJson(ev[i][1], []); if(!ips.includes(newIp)){ ips.push(newIp); es.getRange(i+1,2).setValue(JSON.stringify(ips)); } break; } }
-  return { ok:true };
-}
-/* 刪掉某人的一個 IP：清單移除＋（可選）刪掉它底下所有日期的片 */
-function deleteIp(b){
-  const es = sheetOf('剪輯師', E_HEAD); const ev = es.getDataRange().getValues();
-  for(let i=1;i<ev.length;i++){ if(txt(ev[i][0])===String(b.editor)){ const ips = safeJson(ev[i][1], []).filter(x=>x!==b.ip); es.getRange(i+1,2,1,2).setValues([[JSON.stringify(ips), new Date().toISOString()]]); break; } }
-  let n = 0;
-  if(b.withRows){ const rs = sheetOf('回報', R_HEAD); const vals = rs.getDataRange().getValues();
-    for(let i=vals.length-1;i>=1;i--){ if(txt(vals[i][1])===String(b.editor) && txt(vals[i][2])===String(b.ip)){ rs.deleteRow(i+1); n++; } } }
-  return { ok:true, deleted:n };
 }
 
 function setIps(editor, ips){
