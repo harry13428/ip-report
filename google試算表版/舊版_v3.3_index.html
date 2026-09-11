@@ -111,20 +111,6 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 6px}
 .check{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:14px}
 .check input{margin-top:3px}
 .divider{height:1px;background:var(--line);margin:12px 0}
-.donelist{border:1px solid var(--line);border-radius:10px;padding:4px 10px;margin:6px 0 4px}
-.donerow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
-.donerow:first-child{border-top:0}
-.donerow .f{font-weight:700}
-.donerow .s{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
-.formtitle{font-weight:800;margin-top:12px;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.iprow .ipname{font-weight:800;font-size:15px;padding:10px 0 2px;display:flex;align-items:center;gap:8px}
-.iprow .ipname .cnt{font-weight:500;color:var(--muted);font-size:12px}
-.vid .t{display:flex;align-items:center;gap:8px;padding:8px 0 8px 6px;cursor:pointer;user-select:none;font-weight:600}
-.vid .t .film{font-size:14px}
-.vid .t .st{font-size:12px;color:var(--muted);font-weight:500;margin-left:auto;white-space:nowrap}
-.vid .t .arrow{color:var(--muted);font-size:12px}
-.vid .d{display:none;padding:0 0 8px}
-.vid.open .d{display:block}
 .extra{margin-top:14px;border:1px dashed var(--line);border-radius:10px;padding:8px 12px}
 .extra summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--muted);list-style:none}
 .extra summary::before{content:'▸ ';}
@@ -249,7 +235,7 @@ a{color:var(--accent)}
       <label class="check"><input type="checkbox"> 需要主管幫忙的事有單獨寫，不是埋在段落裡</label>
       <label class="check"><input type="checkbox"> 開頭調整的片有寫「為什麼」</label>
       <div class="divider"></div>
-      <button class="btn block" id="btnCopyMine">📋 複製我這天已上傳的回報文字（貼群組）</button>
+      <button class="btn block" id="btnCopyMine">📋 複製我這天的回報文字（貼群組）</button>
     </div>
   </section>
 
@@ -274,16 +260,12 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v4.0';
+const APP_VER = 'v3.3';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
-const LS = { cfg: 'ipreport_cfg_v3', draft: 'ipreport_draft_v4', cache: 'ipreport_cache_v4' };
-const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等小優看', '等 IP 補資料', '其他'];          // 為什麼還在內審
-const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
-const WD = ['日','一','二','三','四','五','六'];
-
-/* 狀態燈由內審／外審的答案自動判斷 */
+const LS = { cfg: 'ipreport_cfg_v3', draft: 'ipreport_draft_v3', cache: 'ipreport_cache_v3' };
+/* 狀態燈由內審／外審的答案自動判斷（不用另外選） */
 function stateOf(e){
   if(e.help) return { label:'⚠️ 需要主管協助', cls:'stuck' };
   if(e.stage==='外審'){
@@ -297,6 +279,9 @@ function stateOf(e){
   if(e.stage==='內審'){ const r = e.reason==='其他' ? (e.reasonNote||'其他') : e.reason; return { label:'內審'+(r?('・'+r):''), cls: e.reason==='缺素材' ? 'wait' : '' }; }
   return { label:'還沒填', cls:'' };
 }
+const REASON_OPTS = ['缺素材', '還在修改', '等主管內審', '等小優看', '等 IP 補資料', '其他'];          // 為什麼還在內審
+const REPLY_OPTS  = ['還沒給 IP 看', '已給 IP 看，未回覆', 'IP 已回覆要修改', 'IP 已過片', '其他'];        // 外審之後的狀態
+const WD = ['日','一','二','三','四','五','六'];
 
 /* ================= 小工具 ================= */
 const $ = s => document.querySelector(s);
@@ -310,33 +295,30 @@ let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.class
 function loadJSON(k, def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fmtTime(iso){ const d=new Date(iso); if(isNaN(d)) return ''; return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function fmtD(d){ if(!d) return ''; const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
 function shiftDay(key, n){ const x=parseYmd(key); x.setDate(x.getDate()+n); return ymd(x); }
 function dayLabel(key){ const d=parseYmd(key); const t=ymd(new Date());
   const tag = key===t ? '今天' : key===shiftDay(t,-1) ? '昨天' : key===shiftDay(t,1) ? '明天' : '';
   return { main:`${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`, sub: tag }; }
-const clone = o => JSON.parse(JSON.stringify(o));
 
-/* ================= 狀態 =================
-   everyone[name] = { name, ips:[...], weeks:{ 日期:{ IP:[ 影片, 影片, ... ] } } }
-   drafts[日期][IP] = 正在填的那一支（沒上傳）；drafts 裡的 _key 是「正在編輯哪一支已上傳的片」的片名 */
+/* ================= 狀態 ================= */
 let cfg = loadJSON(LS.cfg, { name:'' });
 let day = ymd(new Date());
-let myIps = loadJSON(LS.draft, {}).ips || [];
-let drafts = loadJSON(LS.draft, {}).drafts || {};
-let everyone = loadJSON(LS.cache, {});
+let mine = loadJSON(LS.draft, null);        // 我的檔（含草稿）：{name, ips, weeks:{day:{ip:entry}}}
+let everyone = loadJSON(LS.cache, {});      // name -> {name, ips, weeks:{day:{ip:entry}}}（全部日期）
 let filter = 'all';
 let openIp = null; let openAll = {};
 let calMonth = null;
 
-function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', updatedAt:'' }; }
-function draft(ip){ drafts[day] ||= {}; drafts[day][ip] ||= blankEntry(); return drafts[day][ip]; }
-function persist(){ saveJSON(LS.draft, { ips: myIps, drafts }); }
-function touch(ip){ draft(ip)._dirty = new Date().toISOString(); }
-const mineRemote = () => (cfg.name && everyone[cfg.name]) || null;
-function uploaded(ip){ return (mineRemote()?.weeks?.[day]?.[ip]) || []; }   // 這天已上傳的片
+function blankEntry(){ return { film:'', stage:'', reason:'', reasonNote:'', ipReply:'', replyNote:'', pending:'', chased:'', reviewDate:'', publishDate:'', news:'', help:'', status:'', chase:'', pass:'無', assets:'無', assetsNote:'', opening:[], updatedAt:'' }; }
+function ensureMine(){ if(!mine) mine = { name: cfg.name, ips:[], weeks:{} }; if(cfg.name) mine.name = cfg.name; mine.weeks ||= {}; mine.ips ||= []; return mine; }
+function entry(ip){ ensureMine(); mine.weeks[day] ||= {}; mine.weeks[day][ip] ||= blankEntry(); return mine.weeks[day][ip]; }
+function stripMeta(o){ if(!o) return null; const c=JSON.parse(JSON.stringify(o)); delete c.updatedAt; delete c._dirty; return c; }
+function touch(ip){ entry(ip)._dirty = new Date().toISOString(); }
+function persistDraft(){ saveJSON(LS.draft, mine); }
+const remoteMine = () => (cfg.name && everyone[cfg.name]) || null;
 
 /* ================= Google 試算表 API ================= */
+/* Google 的回應偶爾會變成一頁 HTML（不是 JSON），遇到就自動重試 */
 async function fetchJSON(url, opt, tries=3){
   let last='';
   for(let i=0;i<tries;i++){
@@ -350,51 +332,38 @@ async function apiGet(params){ const u = API + '?' + new URLSearchParams({ ...pa
 async function apiPost(body){ return fetchJSON(API, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify(body) }); }
 function setSync(state, text){ const d=$('#syncDot'); d.className='dot '+(state||''); $('#syncText').textContent=text; }
 
-/* 後端舊格式（一個 IP 一支）也吃得下 */
-function normalize(editors){ for(const n of Object.keys(editors||{})){ const w = editors[n].weeks||{}; for(const dk of Object.keys(w)){ for(const ip of Object.keys(w[dk])){ if(!Array.isArray(w[dk][ip])) w[dk][ip] = [w[dk][ip]]; } } } return editors||{}; }
-
 async function refreshAll(silent){
   setSync('busy', '下載中…');
   try{
-    const j = await apiGet({ action:'all' });
-    everyone = normalize(j.editors); saveJSON(LS.cache, everyone);
-    if(cfg.name && everyone[cfg.name]){ myIps = [...new Set([...(everyone[cfg.name].ips||[]), ...myIps])]; persist(); }
+    const j = await apiGet({ action:'all' });          // 一次抓全部日期（資料很小）
+    everyone = j.editors || {}; saveJSON(LS.cache, everyone);
+    if(cfg.name && everyone[cfg.name]){
+      const r = everyone[cfg.name]; ensureMine();
+      mine.ips = [...new Set([...(r.ips||[]), ...mine.ips])];
+      for(const dk of Object.keys(r.weeks||{})){ mine.weeks[dk] ||= {}; for(const ip of Object.keys(r.weeks[dk])){ const L = mine.weeks[dk][ip]; const R = r.weeks[dk][ip]; const localNewer = L && L._dirty && L._dirty > (R.updatedAt||''); if(!L || (!localNewer && (R.updatedAt||'') >= (L.updatedAt||''))) mine.weeks[dk][ip] = JSON.parse(JSON.stringify(R)); } }
+      persistDraft();
+    }
     setSync('ok', '已同步 ' + nowStr());
     if(!silent) toast('已更新大家的回報');
   }catch(e){ setSync('err', '同步失敗'); if(!silent) toast('下載失敗：' + e.message); }
   renderAll(); renderMine(); renderWho();
 }
 
-/* 上傳草稿：成功後草稿清空（保留 IP），這支片進到「已上傳」清單 */
-async function uploadDraft(ip){
+async function uploadIp(ip){
   if(!cfg.name){ showWho(); return; }
-  const e = draft(ip);
-  if(!e.film.trim()) { toast('先填這支影片的名字'); return; }
-  if(!e.stage) { toast('先選內審或外審'); return; }
   setSync('busy', '上傳中…');
   try{
-    const send = clone(e); delete send._dirty; delete send._key; send.updatedAt = new Date().toISOString();
-    const j = await apiPost({ action:'save', editor:cfg.name, week:day, ip, keyFilm: (e._key ?? e.film), entry:send, ips:myIps });
-    send.updatedAt = j.updatedAt || send.updatedAt;
-    everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; const R = everyone[cfg.name]; R.ips=[...myIps]; R.weeks ||= {}; R.weeks[day] ||= {}; const list = (R.weeks[day][ip] ||= []);
-    const idx = list.findIndex(x => x.film === (e._key ?? e.film)); if(idx>=0) list[idx] = send; else list.push(send);
-    saveJSON(LS.cache, everyone);
-    drafts[day][ip] = blankEntry(); persist();
-    setSync('ok', '已上傳 ' + nowStr()); toast(idx>=0 ? '已更新這支片' : '已上傳，可以寫下一支');
-  }catch(err){ setSync('err', '上傳失敗'); toast('上傳失敗：' + err.message); }
+    const e = entry(ip); e.updatedAt = new Date().toISOString(); persistDraft();
+    const send = JSON.parse(JSON.stringify(e)); delete send._dirty;
+    const j = await apiPost({ action:'save', editor:cfg.name, week:day, ip, entry:send, ips:mine.ips });
+    if(j.skipped){ toast('伺服器上有更新的版本，先重新整理再改'); await refreshAll(true); return; }
+    e.updatedAt = j.updatedAt || e.updatedAt; delete e._dirty; persistDraft();
+    everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; const R = everyone[cfg.name]; R.ips = [...mine.ips]; R.weeks ||= {}; R.weeks[day] ||= {}; R.weeks[day][ip] = JSON.parse(JSON.stringify(e)); saveJSON(LS.cache, everyone);
+    setSync('ok', '已上傳 ' + nowStr()); toast('已上傳，大家都看得到了');
+  }catch(e){ setSync('err', '上傳失敗'); toast('上傳失敗：' + e.message); }
   renderMine(); renderAll();
 }
-async function uploadIps(){ if(!cfg.name) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:myIps }); everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; everyone[cfg.name].ips=[...myIps]; }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
-
-/* 把已上傳的某支片載入表單編輯 */
-function editEntry(dk, ip, film){
-  const list = (mineRemote()?.weeks?.[dk]?.[ip]) || []; const src = list.find(x=>x.film===film); if(!src) return toast('找不到這支片');
-  day = dk; renderDay();
-  if(!myIps.includes(ip)) myIps.push(ip);
-  drafts[day] ||= {}; drafts[day][ip] = Object.assign(clone(src), { _key: film, _dirty: new Date().toISOString() }); persist();
-  openIp = ip; showPage('mine'); renderMine();
-  toast(`正在編輯「${ip}｜${film}」，改完按儲存並上傳`);
-}
+async function uploadIps(){ if(!cfg.name) return; try{ await apiPost({ action:'ips', editor:cfg.name, ips:mine.ips }); everyone[cfg.name] ||= { name:cfg.name, ips:[], weeks:{} }; everyone[cfg.name].ips=[...mine.ips]; }catch(e){ toast('IP 清單沒同步成功：'+e.message); } }
 
 /* ================= 誰在用 ================= */
 function showWho(){ $('#who').style.display=''; renderWho(); }
@@ -403,34 +372,35 @@ function renderWho(){ const names = Object.keys(everyone).sort((a,b)=>a.localeCo
   $('#nameList').innerHTML = names.length ? names.map(n=>`<button data-n="${esc(n)}">${esc(n)}</button>`).join('') : '<div class="empty" style="grid-column:1/-1">還沒有人用過，在下面打名字。</div>';
   $('#nameList').querySelectorAll('button').forEach(b => b.onclick = () => becomeUser(b.dataset.n)); }
 function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先打名字');
-  if(cfg.name && cfg.name !== name){ myIps = []; drafts = {}; }
-  cfg = { name }; saveJSON(LS.cfg, cfg); myIps = [...new Set([...(everyone[name]?.ips||[]), ...myIps])]; persist(); hideWho(); renderHeader(); refreshAll(true); showPage('mine'); toast(`嗨 ${name}，開始填吧`); }
+  if(mine && mine.name && mine.name !== name){ mine = null; try{ localStorage.removeItem(LS.draft); }catch(e){} }
+  cfg = { name }; saveJSON(LS.cfg, cfg); ensureMine(); persistDraft(); hideWho(); renderHeader(); refreshAll(true); showPage('mine'); toast(`嗨 ${name}，開始填吧`); }
 
 /* ================= 畫面：共用 ================= */
 function showPage(p){ $$('.page').forEach(x=>x.classList.toggle('on', x.id==='page-'+p)); $$('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.page===p));
-  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>選日期 → 點 IP 展開 → 填片名 → 選內審或外審 → 回答問題 → 儲存並上傳。上傳後表單會清空，可以接著寫下一支。',
-                            all:'<b>這頁：</b>大家這天的回報。點 IP 底下的影片可以展開；自己的片有「編輯」可以改狀態。' }[p]; window.scrollTo(0,0); }
+  $('#guide').innerHTML = { mine:'<b>怎麼用：</b>上面選日期 → 點 IP 展開 → 填片名 → 選內審或外審 → 回答出現的問題 → 按「儲存並上傳」。',
+                            all:'<b>這頁：</b>大家這天的回報。點人底下的 IP 可以展開看那支片的狀況，紅點＝需要主管協助。' }[p]; window.scrollTo(0,0); }
 function renderDay(){ const w=dayLabel(day); $('#dayLabel').textContent=w.main; $('#daySub').textContent=w.sub; }
 function renderHeader(){ $('#whoami').textContent = cfg.name || ''; $('#drawerMe').textContent = cfg.name || '（還沒選）'; }
 
 /* ================= 畫面：我的回報 ================= */
 function renderMine(){
+  ensureMine();
   $('#mineSetupHint').innerHTML = !cfg.name ? `<div class="card" style="border:2px solid var(--accent)"><h3>還沒選名字</h3><button class="btn primary" onclick="showWho()">選我是誰</button></div>` : '';
   const chips = $('#ipChips');
-  chips.innerHTML = myIps.length ? myIps.map(ip => `<span class="pill">${esc(ip)} <button title="移除這個 IP" data-rm="${esc(ip)}">✕</button></span>`).join('') : '<span class="empty" style="padding:6px">還沒有 IP，先在下面新增。</span>';
-  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已上傳的回報會保留，只是不再顯示）`)){ myIps = myIps.filter(x=>x!==ip); persist(); uploadIps(); renderMine(); } });
+  chips.innerHTML = mine.ips.length ? mine.ips.map(ip => `<span class="pill">${esc(ip)} <button title="移除這個 IP" data-rm="${esc(ip)}">✕</button></span>`).join('') : '<span class="empty" style="padding:6px">還沒有 IP，先在下面新增。</span>';
+  chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const ip=b.dataset.rm; if(confirm(`移除「${ip}」？（已填過的回報會保留，只是不再顯示）`)){ mine.ips = mine.ips.filter(x=>x!==ip); persistDraft(); uploadIps(); renderMine(); } });
 
   const wrap = $('#ipCards'); wrap.innerHTML = '';
-  myIps.forEach(ip => {
-    const e = draft(ip); const done = uploaded(ip); const editing = e._key !== undefined;
-    const hasDraft = !!(e.film||e.stage||e.pending||e.news||e.help);
+  const R = remoteMine();
+  mine.ips.forEach(ip => {
+    const e = entry(ip); const st = stateOf(e);
+    const remote = R?.weeks?.[day]?.[ip] || null;
+    const dirtyIp = JSON.stringify(stripMeta(e)) !== JSON.stringify(stripMeta(remote || blankEntry()));
     const card = document.createElement('div'); card.className = 'card ipcard' + (openIp===ip?' open':'');
     card.innerHTML = `
-      <div class="head"><span class="sdot ${done.length?'done':''}"></span><span class="name">${esc(ip)}<small style="font-weight:500;color:var(--muted);margin-left:6px">${done.length?`這天 ${done.length} 支已上傳`:''}</small></span>
-        ${hasDraft?`<span class="badge dirty">${editing?'編輯中':'寫到一半'}</span>`:''}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
+      <div class="head"><span class="sdot ${st.cls}"></span><span class="name">${esc(ip)}${e.film?`<small style="font-weight:500;color:var(--muted);margin-left:6px">${esc(e.film)}</small>`:''}${e.stage?`<span class="badge" style="margin-left:6px">${esc(e.stage)}</span>`:''}</span>
+        ${dirtyIp?'<span class="badge dirty">未上傳</span>':(remote?'<span class="badge ok">已上傳</span>':'')}<span class="state">${openIp===ip?'收合 ▴':'展開 ▾'}</span></div>
       <div class="body">
-        ${done.length?`<div class="donelist">${done.map(x=>{ const st=stateOf(x); return `<div class="donerow"><span class="sdot ${st.cls}"></span><span class="f">${esc(x.film||'（沒寫片名）')}</span><span class="s">${st.label}</span><button class="btn small" data-edit="${esc(x.film)}">編輯</button></div>`; }).join('')}</div>`:''}
-        <div class="formtitle">${editing?`✏️ 正在編輯「${esc(e._key||'（沒寫片名）')}」 <button class="btn small" data-cancel="1">取消編輯</button>`:(done.length?'＋ 再寫一支':'寫一支影片')}</div>
         <div class="field"><label>這支影片<small>片名＋版本</small></label><input type="text" data-f="film" placeholder="例：第 3 集 v2" value="${esc(e.film||'')}"></div>
         <div class="field"><label>影片狀態</label>
           <div class="seg status-seg"><button class="${e.stage==='內審'?'on':''}" data-f="stage" data-v="內審">1. 內審</button><button class="${e.stage==='外審'?'on':''}" data-f="stage" data-v="外審">2. 外審</button></div></div>
@@ -456,29 +426,32 @@ function renderMine(){
         </details>
         <div class="divider"></div>
         <div class="row">
-          <button class="btn primary" data-save="1" style="flex:1">💾 ${editing?'儲存修改':'儲存並上傳'}</button>
-          <button class="btn" data-clear="1" ${hasDraft?'':'disabled'}>清空</button>
+          <button class="btn primary" data-save="1" style="flex:1">💾 儲存並上傳</button>
+          <button class="btn" data-revert="1" ${dirtyIp?'':'disabled'}>↩ 還原成上次上傳</button>
         </div>
+        <div class="hint" style="font-size:12px;color:var(--muted);margin-top:6px">${remote?.updatedAt?('上次上傳：'+fmtTime(remote.updatedAt)):'這天還沒上傳過'}</div>
       </div>`;
     card.querySelector('.head').onclick = () => { openIp = (openIp===ip?null:ip); renderMine(); };
     card.querySelectorAll('[data-f]').forEach(el => {
-      if(el.tagName==='SELECT'){ el.onchange = () => { draft(ip)[el.dataset.f] = el.value; touch(ip); persist(); renderMine(); }; }
-      else if(el.tagName==='INPUT' && el.type==='date'){ el.onchange = () => { draft(ip)[el.dataset.f] = el.value; touch(ip); persist(); }; }
-      else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { draft(ip)[el.dataset.f] = el.value; touch(ip); persist(); }; }
-      else el.onclick = () => { draft(ip)[el.dataset.f] = el.dataset.v; touch(ip); persist(); renderMine(); };
+      if(el.tagName==='SELECT'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); renderMine(); }; }
+      else if(el.tagName==='INPUT' && el.type==='date'){ el.onchange = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); markDirty(card); }; }
+      else if(el.tagName==='TEXTAREA' || el.tagName==='INPUT'){ el.oninput = () => { entry(ip)[el.dataset.f] = el.value; touch(ip); persistDraft(); markDirty(card); }; }
+      else el.onclick = () => { entry(ip)[el.dataset.f] = el.dataset.v; touch(ip); persistDraft(); renderMine(); };
     });
-    card.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editEntry(day, ip, b.dataset.edit));
-    const cancel = card.querySelector('[data-cancel]'); if(cancel) cancel.onclick = () => { drafts[day][ip] = blankEntry(); persist(); renderMine(); };
-    card.querySelector('[data-save]').onclick = () => uploadDraft(ip);
-    card.querySelector('[data-clear]').onclick = () => { if(!confirm('清空這張表單？（已上傳的不會動）')) return; drafts[day][ip] = blankEntry(); persist(); renderMine(); };
+    card.querySelectorAll('[data-op]').forEach(el => { const i=+el.dataset.op; if(el.dataset.rmop!==undefined){ el.onclick=()=>{ entry(ip).opening.splice(i,1); persistDraft(); renderMine(); }; } else { el.oninput=()=>{ entry(ip).opening[i][el.dataset.k]=el.value; persistDraft(); markDirty(card); }; } });
+    card.querySelector('[data-save]').onclick = () => uploadIp(ip);
+    card.querySelector('[data-revert]').onclick = () => { if(!confirm('把這個 IP 這天的內容還原成上次上傳的版本？')) return; mine.weeks[day][ip] = remote ? JSON.parse(JSON.stringify(remote)) : blankEntry(); persistDraft(); renderMine(); };
     wrap.appendChild(card);
   });
 }
+function openingRow(o,i){ return `<div class="openrow"><input type="text" data-op="${i}" data-k="film" placeholder="片名" value="${esc(o.film)}"><input type="text" data-op="${i}" data-k="change" placeholder="開頭改了什麼／勾子是什麼" value="${esc(o.change)}"><input type="text" data-op="${i}" data-k="why" placeholder="為什麼這樣剪" value="${esc(o.why)}"><button class="btn small rm" data-op="${i}" data-rmop="1">移除</button></div>`; }
+function markDirty(card){ const b=card.querySelector('.head .badge'); if(b){ b.className='badge dirty'; b.textContent='未上傳'; } else { const s=document.createElement('span'); s.className='badge dirty'; s.textContent='未上傳'; card.querySelector('.head .name').after(s); } const rv=card.querySelector('[data-revert]'); if(rv) rv.disabled=false; }
 
 /* ================= 畫面：全部人 ================= */
+function fmtD(d){ if(!d) return ''; const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
 function entryText(ip, e){
-  const L=[]; L.push(`${ip}｜${e.film||'（沒寫片名）'}　${stateOf(e).label}`);
-  if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?(e.reasonNote||'其他'):e.reason}`);
+  const L=[]; L.push(`${ip}${e.film?('｜'+e.film):''}　${stateOf(e).label}`);
+  if(e.stage==='內審' && (e.reason||e.reasonNote)) L.push(`　還在內審因為：${e.reason==='其他'?'':e.reason}${e.reasonNote?((e.reason&&e.reason!=='其他')?'（'+e.reasonNote+'）':e.reasonNote):''}`);
   if(e.stage==='外審'){
     if(e.ipReply) L.push(`　給 IP 之後：${e.ipReply==='其他'?(e.replyNote||'其他'):e.ipReply}`);
     if(e.pending) L.push(`　卡在哪：${e.pending}`);
@@ -490,44 +463,40 @@ function entryText(ip, e){
   return L.join('\n');
 }
 function personText(name, file){ const wk=file?.weeks?.[day]||{}; const ips=Object.keys(wk);
-  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.flatMap(ip=>wk[ip].map(e=>entryText(ip, e))).join('\n'); }
+  if(!ips.length) return `【${name}】這天沒填`; return `【${name}】\n` + ips.map(ip=>entryText(ip, wk[ip])).join('\n'); }
 function entryDetail(e){ const rows=[];
-  if(e.stage==='內審') rows.push(`<div class="kv"><b>還在內審因為</b>${esc(e.reason==='其他'?(e.reasonNote||'其他'):(e.reason||'未選'))}</div>`);
+  if(e.stage==='內審') rows.push(`<div class="kv"><b>還在內審因為</b>${esc(e.reason==='其他'?(e.reasonNote||'其他'):(e.reason||'未選'))}${(e.reason&&e.reason!=='其他'&&e.reasonNote)?'（'+esc(e.reasonNote)+'）':''}</div>`);
   if(e.stage==='外審'){
     rows.push(`<div class="kv"><b>給 IP 之後</b>${esc(e.ipReply==='其他'?(e.replyNote||'其他'):(e.ipReply||'未選'))}</div>`);
     if(e.pending) rows.push(`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`);
     rows.push(`<div class="kv"><b>催過片</b>${esc(e.chased||'未填')}</div>`);
     if(e.reviewDate||e.publishDate) rows.push(`<div class="kv"><b>外審日</b>${esc(fmtD(e.reviewDate)||'－')}　<b>預計上片</b>${esc(fmtD(e.publishDate)||'－')}</div>`);
   }
+  if(!e.stage && e.pending) rows.push(`<div class="kv"><b>卡在哪</b>${esc(e.pending)}</div>`);
   if(e.news) rows.push(`<div class="kv"><b>IP 新動態</b>${esc(e.news)}</div>`);
   if(e.help) rows.push(`<div class="kv help"><b>⚠️ 需要主管協助</b>${esc(e.help)}</div>`);
-  if(!rows.length) rows.push('<div class="kv" style="color:var(--muted)">沒有其他內容</div>');
-  if(e.updatedAt) rows.push(`<div class="kv" style="color:var(--muted);font-size:12px">最後更新 ${fmtTime(e.updatedAt)}</div>`);
+  if(!rows.length) rows.push('<div class="kv" style="color:var(--muted)">只填了狀態</div>');
+  if(e.updatedAt) rows.push(`<div class="kv" style="color:var(--muted);font-size:12px">上傳 ${fmtTime(e.updatedAt)}</div>`);
   return rows.join(''); }
-function passFilter(e){ if(filter==='all') return true; if(filter==='help') return !!e.help; if(filter==='wait') return e.ipReply==='已給 IP 看，未回覆'; if(filter==='in') return e.stage==='內審'; if(filter==='out') return e.stage==='外審'; return true; }
 function renderAll(){
   const list = $('#allList');
   const names = Object.keys(everyone).sort((a,b)=> a===cfg.name?-1 : b===cfg.name?1 : a.localeCompare(b,'zh-Hant'));
   if(!names.length){ list.innerHTML = `<div class="card"><div class="empty">還沒有任何人上傳回報。</div></div>`; return; }
   const html = names.map(name => {
     const wk = everyone[name].weeks?.[day] || {};
-    const ips = Object.keys(wk).filter(ip => wk[ip].some(passFilter));
+    const ips = Object.keys(wk).filter(ip => { const e=wk[ip]; if(filter==='all') return true; if(filter==='help') return !!e.help; if(filter==='wait') return e.ipReply==='已給 IP 看，未回覆'; if(filter==='in') return e.stage==='內審'; if(filter==='out') return e.stage==='外審'; return true; });
     if(filter!=='all' && !ips.length) return '';
-    let n=0;
-    const rows = ips.length ? ips.map(ip => {
-      const vids = wk[ip].filter(passFilter); n += vids.length;
-      return `<div class="iprow"><div class="ipname">${esc(ip)}<span class="cnt">${vids.length} 支</span></div>` + vids.map(e => { const k = name+'|'+ip+'|'+e.film; const st = stateOf(e);
-        return `<div class="vid ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st.cls}"></span><span class="film">${esc(e.film||'（沒寫片名）')}</span><span class="st">${st.label}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}${name===cfg.name?`<div class="kv"><button class="btn small" data-edit-ip="${esc(ip)}" data-edit-film="${esc(e.film)}">✏️ 編輯這支</button></div>`:''}</div></div>`; }).join('') + `</div>`; }).join('')
+    const rows = ips.length ? ips.map(ip => { const e = wk[ip]; const k = name+'|'+ip; const st = stateOf(e);
+      return `<div class="iprow ${openAll[k]?'open':''}" data-k="${esc(k)}"><div class="t"><span class="sdot ${st.cls}"></span><span>${esc(ip)}</span>${e.film?`<span class="film">${esc(e.film)}</span>`:''}<span class="st">${st.label}</span><span class="arrow">${openAll[k]?'▴':'▾'}</span></div><div class="d">${entryDetail(e)}</div></div>`; }).join('')
       : `<div class="empty" style="padding:8px">這天沒填</div>`;
-    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${n?n+' 支':''}</span></h3>${rows}</div>`;
+    return `<div class="card person"><h3><span>${esc(name)}</span>${name===cfg.name?'<span class="badge">我</span>':''}<span class="meta">${ips.length?ips.length+' 個 IP':''}</span></h3>${rows}</div>`;
   }).join('');
   list.innerHTML = html || `<div class="card"><div class="empty">這個篩選條件下沒有東西。</div></div>`;
-  list.querySelectorAll('.vid .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
-  list.querySelectorAll('[data-edit-ip]').forEach(b => b.onclick = () => editEntry(day, b.dataset.editIp, b.dataset.editFilm));
+  list.querySelectorAll('.iprow .t').forEach(t => t.onclick = () => { const k=t.parentElement.dataset.k; openAll[k]=!openAll[k]; renderAll(); });
 }
 
 /* ================= 日曆 ================= */
-function daysWithData(){ const m={}; for(const n of Object.keys(everyone)){ for(const dk of Object.keys(everyone[n].weeks||{})){ if(Object.values(everyone[n].weeks[dk]).some(a=>a.length)) (m[dk] ||= new Set()).add(n); } } return m; }
+function daysWithData(){ const m={}; for(const n of Object.keys(everyone)){ for(const dk of Object.keys(everyone[n].weeks||{})){ if(Object.keys(everyone[n].weeks[dk]).length) (m[dk] ||= new Set()).add(n); } } return m; }
 function renderCal(){ calMonth ||= day.slice(0,7); const [y,m]=calMonth.split('-').map(Number); $('#calTitle').textContent=`${y} 年 ${m} 月`;
   const first=new Date(y,m-1,1); const start=new Date(first); start.setDate(1-first.getDay()); const marks=daysWithData(); const today=ymd(new Date());
   let h = WD.map(w=>`<div class="wd">${w}</div>`).join('');
@@ -536,7 +505,7 @@ function renderCal(){ calMonth ||= day.slice(0,7); const [y,m]=calMonth.split('-
   $('#calGrid').innerHTML=h; $('#calGrid').querySelectorAll('.day').forEach(b=>b.onclick=()=>{ setDay(b.dataset.d); closeCal(); }); }
 function openCal(){ calMonth=day.slice(0,7); renderCal(); $('#cal').classList.add('on'); $('#calBg').classList.add('on'); }
 function closeCal(){ $('#cal').classList.remove('on'); $('#calBg').classList.remove('on'); }
-function setDay(k){ day=k; renderDay(); renderMine(); renderAll(); }
+function setDay(k){ day=k; openIp=null; renderDay(); renderMine(); renderAll(); }
 $('#calPrev').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m-2,1)).slice(0,7); renderCal(); };
 $('#calNext').onclick=()=>{ const [y,m]=calMonth.split('-').map(Number); calMonth=ymd(new Date(y,m,1)).slice(0,7); renderCal(); };
 $('#calToday').onclick=()=>{ setDay(ymd(new Date())); closeCal(); };
@@ -552,18 +521,32 @@ $('#btnMenu').onclick=openDrawer; $('#drawerBg').onclick=closeDrawer;
 $('#mSwitch').onclick=()=>{ closeDrawer(); showWho(); };
 $('#mSheet').href = SHEET_URL;
 $('#mCopyAll').onclick=()=>{ closeDrawer(); const w=dayLabel(day); copyText(`📋 IP 週報 ${w.main}\n\n` + Object.keys(everyone).sort().map(n=>personText(n, everyone[n])).join('\n\n')); };
-$('#mExport').onclick=()=>{ closeDrawer(); const blob=new Blob([JSON.stringify({cfgName:cfg.name, myIps, drafts, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
+$('#mExport').onclick=()=>{ closeDrawer(); const blob=new Blob([JSON.stringify({cfgName:cfg.name, mine, everyone},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`IP週報_${cfg.name||'備份'}_${ymd(new Date())}.json`; a.click(); };
 $('#mRefresh').onclick=()=>{ closeDrawer(); refreshAll(false); };
 
 /* ================= 事件 ================= */
 $$('.tabs button').forEach(b => b.onclick = () => showPage(b.dataset.page));
-$('#btnAddIp').onclick = () => { const v = $('#newIpName').value.trim(); if(!v) return toast('先打 IP 名字'); if(myIps.includes(v)) return toast('已經有這個 IP 了'); myIps.push(v); $('#newIpName').value=''; openIp=v; persist(); uploadIps(); renderMine(); };
+$('#btnAddIp').onclick = () => { const v = $('#newIpName').value.trim(); if(!v) return toast('先打 IP 名字'); ensureMine(); if(mine.ips.includes(v)) return toast('已經有這個 IP 了'); mine.ips.push(v); $('#newIpName').value=''; openIp=v; persistDraft(); uploadIps(); renderMine(); };
 $('#newIpName').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnAddIp').click(); });
 $$('.filters button').forEach(b => b.onclick = () => { filter=b.dataset.f; $$('.filters button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
-$('#btnCopyMine').onclick = () => copyText(personText(cfg.name||'我', mineRemote()));
+$('#btnCopyMine').onclick = () => copyText(personText(cfg.name||'我', mine));
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('手動複製：', t); } }
 $('#whoGo').onclick = () => becomeUser($('#whoName').value);
 $('#whoName').addEventListener('keydown', e => { if(e.key==='Enter') $('#whoGo').click(); });
+
+/* ================= 版本更新（瀏覽器快取會留舊版） ================= */
+function hardReload(){ const u = location.pathname + '?v=' + Date.now() + location.hash; location.replace(u); }
+async function checkVersion(){
+  try{ const r = await fetch(location.pathname + '?_=' + Date.now(), { cache:'no-store' }); const t = await r.text();
+    const m = t.match(/APP_VER = '([^']+)'/); if(m && m[1] !== APP_VER){ const b=$('#newVer'); b.textContent = `🆕 有新版本 ${m[1]}，點一下更新（現在是 ${APP_VER}）`; b.style.display=''; } }
+  catch(e){}
+}
+$('#btnReload').onclick = hardReload;
+$('#newVer').onclick = hardReload;
+$('#mReload').onclick = () => { closeDrawer(); hardReload(); };
+setTimeout(checkVersion, 3000);
+setInterval(checkVersion, 5*60*1000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') checkVersion(); });
 
 /* ================= 重新整理／新版本偵測 ================= */
 function hardReload(){ const u = location.pathname + '?r=' + Date.now() + location.hash; location.replace(u); }
@@ -575,8 +558,7 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 /* ================= 啟動 ================= */
 $('#ver').textContent = APP_VER;
 (function readHash(){ const h = new URLSearchParams(location.hash.replace(/^#/,'')); const n=h.get('n'); if(n){ cfg.name=n; saveJSON(LS.cfg, cfg); } })();
-everyone = normalize(everyone);
-renderHeader(); renderDay(); renderMine(); renderAll();
+renderHeader(); renderDay(); ensureMine(); renderMine(); renderAll();
 showPage('mine');
 if(!cfg.name) showWho();
 refreshAll(true);

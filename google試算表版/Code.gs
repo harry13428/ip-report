@@ -38,7 +38,7 @@ function doPost(e){
   } finally { lock.releaseLock(); }
 }
 
-/* 讀：某一週所有人的回報 + 每個人的 IP 清單 */
+/* 讀：所有人的回報（weeks[日期][IP] = 影片陣列）+ 每個人的 IP 清單 */
 function getAll(week){
   const rs = sheetOf('回報', R_HEAD), es = sheetOf('剪輯師', E_HEAD);
   const editors = {};
@@ -50,21 +50,22 @@ function getAll(week){
     if(!o.editor || !o.ip) continue; if(week && o.week!==week) continue;
     const ed = editors[o.editor] || (editors[o.editor] = { name:String(o.editor), ips:[], updatedAt:'', weeks:{} });
     const wk = ed.weeks[o.week] || (ed.weeks[o.week] = {});
-    wk[o.ip] = { status:String(o.status||''), pending:String(o.pending||''), chase:String(o.chase||''), news:String(o.news||''),
-      pass:String(o.pass||'無'), assets:String(o.assets||'無'), assetsNote:String(o.assetsNote||''), help:String(o.help||''),
-      opening: safeJson(o.opening, []), updatedAt:String(o.updatedAt||''), film:String(o.film||''),
-      stage:String(o.stage||''), reason:String(o.reason||''), reasonNote:String(o.reasonNote||''), ipReply:String(o.ipReply||''), replyNote:String(o.replyNote||''), chased:String(o.chased||''), reviewDate:txtDay(o.reviewDate), publishDate:txtDay(o.publishDate) };
+    (wk[o.ip] = wk[o.ip] || []).push({ film:String(o.film||''), stage:String(o.stage||''), reason:String(o.reason||''), reasonNote:String(o.reasonNote||''),
+      ipReply:String(o.ipReply||''), replyNote:String(o.replyNote||''), pending:String(o.pending||''), chased:String(o.chased||''),
+      reviewDate:txtDay(o.reviewDate), publishDate:txtDay(o.publishDate), news:String(o.news||''), help:String(o.help||''),
+      status:String(o.status||''), updatedAt:String(o.updatedAt||'') });   // 一個 IP 一天可以有很多支片
   }
   return { ok:true, week, editors };
 }
 
-/* 寫：一個人、一週、一個 IP 的回報（同鍵覆蓋；舊的 updatedAt 比較新就不覆蓋） */
+/* 寫：一個人、一天、一個 IP 的一支片（同片名覆蓋；keyFilm＝原片名，改名時用） */
 function saveEntry(b){
   const rs = sheetOf('回報', R_HEAD);
   const e = b.entry || {}; const key = [String(b.week), String(b.editor), String(b.ip)];
+  const keyFilm = (b.keyFilm !== undefined && b.keyFilm !== null) ? String(b.keyFilm) : String(e.film||'');   // 用「日期＋人＋IP＋片名」找同一支
   const vals = rs.getDataRange().getValues();
   let rowIdx = -1;
-  for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===key[0] && txt(vals[i][1])===key[1] && txt(vals[i][2])===key[2]){ rowIdx=i+1; break; } }
+  for(let i=1;i<vals.length;i++){ if(txtDay(vals[i][0])===key[0] && txt(vals[i][1])===key[1] && txt(vals[i][2])===key[2] && txt(vals[i][13])===keyFilm){ rowIdx=i+1; break; } }
   const now = new Date().toISOString();
   const row = [key[0], key[1], key[2], e.status||'', e.pending||'', e.chase||'', e.news||'', e.pass||'無', e.assets||'無', e.assetsNote||'', e.help||'', JSON.stringify(e.opening||[]), now, e.film||'', e.stage||'', e.reason||'', e.reasonNote||'', e.ipReply||'', e.replyNote||'', e.chased||'', e.reviewDate||'', e.publishDate||''];
   if(rowIdx>0){
