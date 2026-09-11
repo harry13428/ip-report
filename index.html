@@ -336,7 +336,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.8';
+const APP_VER = 'v5.9';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
@@ -539,10 +539,11 @@ function renderWho(){ const names = Object.keys(everyone).sort((a,b)=>a.localeCo
   $('#nameList').querySelectorAll('button').forEach(b => b.onclick = () => becomeUser(b.dataset.n)); }
 let whoRole = '組員';
 $$('#whoRole button').forEach(b => b.onclick = () => { whoRole = b.dataset.r; $$('#whoRole button').forEach(x=>x.classList.toggle('on', x===b)); });
-function becomeUser(name){ name=(name||'').trim(); if(!name) return toast('先打名字');
+function becomeUser(name, roleChosen){ name=(name||'').trim(); if(!name) return toast('先打名字');
   if(cfg.name && cfg.name !== name){ myIps = []; drafts = {}; }
   cfg = { name }; saveJSON(LS.cfg, cfg); myIps = [...new Set([...(everyone[name]?.ips||[]), ...myIps])]; persist(); hideWho(); renderHeader();
-  if(!everyone[name]){ everyone[name] = { name, ips:[...myIps], role: whoRole, weeks:{} }; uploadIps(whoRole); }   // 新人一進來就登記（含身分），大家的成員清單會看到
+  if(!everyone[name]){ everyone[name] = { name, ips:[...myIps], role: roleChosen||whoRole, weeks:{} }; uploadIps(roleChosen||whoRole); }   // 新人一進來就登記（含身分），大家的成員清單會看到
+  else if(roleChosen && (everyone[name].role||'組員')!==roleChosen){ everyone[name].role = roleChosen; uploadIps(roleChosen); }   // 打名字進來且選了不同身分 → 更新
   refreshAll(true); showPage('mine'); toast(`嗨 ${name}，開始填吧`); }
 
 /* ================= 日期範圍 ================= */
@@ -769,7 +770,7 @@ $('#newIpName').addEventListener('keydown', e => { if(e.key==='Enter') $('#btnAd
 $$('.filters button').forEach(b => b.onclick = () => { filter=b.dataset.f; $$('.filters button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
 $('#mCopyMine').onclick = () => { closeDrawer(); copyText(personText(cfg.name||'我', mineRemote())); };
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('手動複製：', t); } }
-$('#whoGo').onclick = () => becomeUser($('#whoName').value);
+$('#whoGo').onclick = () => becomeUser($('#whoName').value, whoRole);
 $('#whoName').addEventListener('keydown', e => { if(e.key==='Enter') $('#whoGo').click(); });
 
 /* ================= 重新整理／新版本偵測 ================= */
