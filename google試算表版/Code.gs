@@ -1,6 +1,9 @@
 /* IP 週報 App 的後端：綁在 Google 試算表上的 Apps Script
  * 部署方式見同資料夾「部署步驟.md」。App 用 GET 讀、POST 寫。
  */
+/* 需要重新授權時：在編輯器選 auth → 執行，Google 會跳授權視窗 */
+function auth(){ return photoFolder().getName() + ' / ' + SpreadsheetApp.getActive().getName(); }
+
 const R_HEAD = ['week','editor','ip','status','pending','chase','news','pass','assets','assetsNote','help','opening','updatedAt','film','stage','reason','reasonNote','ipReply','replyNote','chased','reviewDate','publishDate','photos','links'];
 const E_HEAD = ['editor','ips','updatedAt'];
 
