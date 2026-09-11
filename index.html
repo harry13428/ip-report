@@ -146,6 +146,9 @@ a{color:var(--accent)}
 .names button{padding:16px 10px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-weight:800;font-size:18px}
 .names button:active{background:var(--soft)}
 .who .or{color:var(--muted);font-size:13px;margin:8px 0}
+.who .roles{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.who .roles button{padding:13px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-weight:800;font-size:16px;text-align:left}
+.who .roles button.on{border-color:var(--accent);background:var(--soft);color:var(--accent)}
 .who .grp{color:var(--muted);font-size:13px;font-weight:700;margin:14px 0 8px}
 .who .grp:first-child{margin-top:0}
 
@@ -243,8 +246,8 @@ a{color:var(--accent)}
     <h1>IP 週報</h1>
     <p>你是誰？點一下自己的名字就進去。</p>
     <div id="nameList"></div>
-    <div class="or">名單裡沒有你：</div>
-    <div class="row" style="margin-bottom:8px"><div class="seg" id="whoRole"><button class="on" data-r="組員">組員</button><button data-r="主管">主管</button></div></div>
+    <div class="or">名單裡沒有你：先選你是誰，再打名字</div>
+    <div class="roles" id="whoRole"><button data-r="主管">👔 主管</button><button class="on" data-r="組員">✂️ 組員</button></div>
     <div class="row"><input type="text" id="whoName" placeholder="打你的名字" style="flex:1;min-width:140px"><button class="btn primary" id="whoGo">進去</button></div>
   </div>
 </div>
@@ -336,7 +339,7 @@ a{color:var(--accent)}
 
 <script>
 /* ================= 設定 ================= */
-const APP_VER = 'v5.9';
+const APP_VER = 'v5.10';
 const API_URL = 'https://script.google.com/macros/s/AKfycbycx6jdZdggGz4iVkDJ5ZkjoyT5n-7X2Vt0hbn86iwU1KgaFrb3RvZoS_XWhcDy3aN4/exec';
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1rpuVje8QJrwARumPDnT6S7eyKlNMSe6Y14JBXWfY3us/edit';
 const API = new URLSearchParams(location.search).get('api') || API_URL;
